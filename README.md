@@ -10,7 +10,7 @@ Open SSH on the server, and run this one line. Change the folder to the one the
 site should live in:
 
 ```
-cd ~/www/example.com/public_html && curl -fsSLo ~/wpmigrate.pyz https://github.com/nikoh663/WPSGMIG/releases/latest/download/wpmigrate.pyz && python3 ~/wpmigrate.pyz
+cd ~/www/example.com/public_html && curl -fsSLo ~/wpmigrate.pyz https://raw.githubusercontent.com/nikoh663/WPSGMIG/main/dist/wpmigrate.pyz && python3 ~/wpmigrate.pyz
 ```
 
 It downloads the tool to your home folder (not the site folder), then starts it.
@@ -128,7 +128,7 @@ folder, and sets folders to 0755 and files to 0644.
 ## Building from source
 
 ```
-python3 tools/build_pyz.py      # writes dist/wpmigrate.pyz
+python3 tools/build_pyz.py      # writes dist/wpmigrate.pyz (commit it: the run command downloads it)
 python3 -m unittest discover -s tests -t .
 ```
 
