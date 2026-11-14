@@ -6,12 +6,15 @@ address of the old site and an administrator login for it. It uses
 
 ## Run it
 
-Upload `wpmigrate.pyz` to your home folder, open SSH, go to the folder the site
-should live in, and run:
+Open SSH on the server, and run this one line. Change the folder to the one the
+site should live in:
 
 ```
-cd ~/www/example.com/public_html && python3 ~/wpmigrate.pyz
+cd ~/www/example.com/public_html && curl -fsSLo ~/wpmigrate.pyz https://github.com/nikoh663/WPSGMIG/releases/latest/download/wpmigrate.pyz && python3 ~/wpmigrate.pyz
 ```
+
+It downloads the tool to your home folder (not the site folder), then starts it.
+If `curl` is missing, use `wget -qO ~/wpmigrate.pyz` with the same address.
 
 Then answer the questions. You can press Ctrl+C at any time, or lose the SSH
 connection, and run the same command again later: it continues where it stopped.
