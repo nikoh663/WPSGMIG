@@ -1,0 +1,10 @@
+[req]
+distinguished_name=dn
+[dn]
+[ext]
+authorityKeyIdentifier=keyid
+subjectKeyIdentifier=hash
+subjectAltName=DNS:src-a.test,DNS:src-b.test,DNS:dest.test,DNS:*.dest.test
+basicConstraints=CA:FALSE
+keyUsage=digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth

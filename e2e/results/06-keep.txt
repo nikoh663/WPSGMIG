@@ -1,0 +1,170 @@
+wpmigrate 1.0.0 - copy a WordPress site to this server (10 steps).
+You can stop at any time with Ctrl+C and run the tool again later; it continues where it stopped.
+
+[1/10] Questions about the site
+
+What is the address of the WordPress site you want to copy? (for example
+https://example.com)
+> https://src-a.test
+
+Administrator username (or e-mail) on that site
+> admin
+
+Password for the administrator account "admin" (it is not shown while you
+type)
+> 
+
+What address will the copied site use? Press Enter to keep the same address
+(you will switch the domain to this server later). [https://src-a.test]
+> https://dest.test
+
+[2/10] Checking this server
+  Using PHP 8.3.6 at /usr/bin/php.
+  Reprint client v0.11.8 is ready.
+
+[3/10] Logging in to the source site
+  Logged in to the source site as an administrator.
+
+[4/10] Reprint plugin on the source site
+  Installing the Reprint plugin on the source site...
+  Reprint plugin installed and activated on the source site.
+
+[5/10] Authorizing this server on the source site
+  Authorized this server on the source site with a Migration Token.
+
+[6/10] Downloading the site
+  Checking the source site (preflight)...
+  The source runs WordPress 7.1.4 on PHP 8.2.35.
+  Downloading the site's files. This can take a while; if the connection drops, run the tool again and it continues.
+    1.3% Downloading files: 111 of 3,839 files, 2.1 of 163.0 MB                  14.8% Downloading files: 1,085 of 3,839 files, 24.1 of 163.0 MB               51.8% Downloading files: 1,407 of 3,839 files, 84.5 of 163.0 MB               57.3% Downloading files: 2,433 of 3,839 files, 93.4 of 163.0 MB               79.1% Downloading files: 2,952 of 3,839 files, 128.9 of 163.0 MB             100.0% Downloading files: 3,839 of 3,839 files, 163.0 of 163.0 MB           
+  All files are downloaded.
+  Downloading the database into a file...
+  The database is downloaded (125.0 KB).
+
+[7/10] Setting up the destination
+
+Press Enter for this folder, type a subfolder name such as blog, or a full
+path.
+Install the site in this folder, or in another one (for example a subfolder)?
+[/home/wpuser/www/dest.test/public_html]
+> 
+  There is already a WordPress site in /home/wpuser/www/dest.test/public_html. Its address is https://dest.test.
+
+What should happen to the site that is there now?
+  1. Remove it and replace it with the migrated site.
+  2. Keep it: move it to the subdomain old.dest.test and replace the main site
+     with the migrated one.
+  3. Cancel.
+Type a number [3]: 2
+
+The current site will be moved to /home/wpuser/www/old.dest.test/public_html
+so it opens at https://old.dest.test. Press Enter to use that folder, or type
+another full path [/home/wpuser/www/old.dest.test/public_html]
+> 
+
+==============================================================================
+Before the old site can be moved, please create the subdomain old.dest.test in
+your hosting panel. This tool cannot create it for you.
+When it is created, the folder /home/wpuser/www/old.dest.test/public_html
+   should appear. Press Enter when you have done this.
+==============================================================================
+Press Enter when the subdomain has been created. 
+[drive] meanwhile in the hosting panel: subdomain old.dest.test created; the panel adds a placeholder index.html
+
+
+/home/wpuser/www/old.dest.test/public_html already contains: index.html.
+Remove these so the old site can go there? [y/N] y
+  Removed 1 placeholder item(s) from /home/wpuser/www/old.dest.test/public_html.
+  Moved the existing site to /home/wpuser/www/old.dest.test/public_html.
+  The old site starts correctly with the address https://old.dest.test.
+  https://old.dest.test answers (HTTP 200).
+  Now the database for the copied site. Create an empty database and a user for it in your hosting panel if you have not yet.
+
+Database host [localhost]
+> 172.30.0.12
+
+Database name
+> site_old
+
+Database user
+> site_old
+  ! The old site keeps using the database site_old with the table prefix wp_,
+    the same prefix the copied site uses. Sharing them would overwrite the old
+    site. Create a separate database for the copied site in your hosting panel
+    and enter it here.
+
+Database host [172.30.0.12]
+> 172.30.0.12
+
+Database name
+> site_new
+
+Database user
+> site_new
+
+Database password (it is not shown while you type)
+> 
+  Connected to the database site_new (MySQL 10.11.19-MariaDB-ubu2204).
+
+Import the copied site into the database site_new, replacing any tables that
+start with wp_? [y/N] y
+  The folder /home/wpuser/www/dest.test/public_html also contains files that are not part of a WordPress site:
+    google1234.html
+
+What should happen to them?
+  1. Move them to a dated backup folder in
+     /home/wpuser/.wpmigrate/sites/src-a.test/backups.
+  2. Remove them.
+Type a number [1]: 1
+
+[8/10] Installing the copied site
+  Moved 1 other item(s) to /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261114-224339.
+  Importing the database and changing the address to https://dest.test...
+    0.0% Importing the database: 0 database statements, 0.0 of 0.1 MB           100.0% Importing the database: 41 database statements, 0.1 of 0.1 MB        
+  Put the site's files in /home/wpuser/www/dest.test/public_html.
+  Wrote wp-config.php with the new database details.
+  WordPress starts correctly in the new location.
+
+[9/10] Tidying up the source site
+
+The copy is finished. Tidy up the source site now (remove this server's access
+and the Reprint plugin)? [Y/n] y
+  Removed this server's Migration Token from the source site.
+  Deactivated and deleted the Reprint plugin on the source site (this tool had installed it).
+
+[10/10] Summary
+  Deleted the downloaded database file and the source login cookies.
+  Deleted Reprint's working files (they contained the database password); its log is kept as reprint-audit.log.
+
+Done! Here is what to know:
+- The copied site is in /home/wpuser/www/dest.test/public_html and uses the
+  address https://dest.test.
+- Its database is site_new on 172.30.0.12.
+- Make sure the domain of https://dest.test points to this hosting account.
+- Check: the home page, a few posts and pages, images, the admin login,
+  contact forms, and any shop checkout.
+- Careful: the copy is a live WordPress site. It may send e-mails (to
+  customers too) and take real payments, and scheduled tasks will run. Switch
+  off what must not run twice.
+- The old site is kept at https://old.dest.test, in the folder
+  /home/wpuser/www/old.dest.test/public_html. When checked,
+  https://old.dest.test answered (HTTP 200). Search engines are asked not to
+  index it.
+- Files that were in the folder before were moved to
+  /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261114-224339.
+- Logs and saved progress for this copy are in
+  /home/wpuser/.wpmigrate/sites/src-a.test.
+
+[drive] exit code: 0
+OK   https://dest.test/ -> HTTP 200, contains 'SRC-A-7731'
+OK   https://dest.test/sample-page/ -> HTTP 200, contains 'Sample Page'
+old site home option (WP-CLI, full boot): https://old.dest.test
+old site blog_public: 0
+OK   https://old.dest.test/ -> HTTP 200, contains 'OLD-DEST-MARKER-5512'
+old site DB: define( 'DB_NAME', 'site_old' );
+new site DB: define( 'DB_NAME', 'site_new');
+old site post links: https://old.dest.test/old-page/
+site_new	12
+site_old	12
+site_new home:	https://dest.test
+site_old home:	https://old.dest.test

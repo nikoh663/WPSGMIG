@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+dist/
+e2e/env/certs/*.key
+e2e/env/certs/*.srl
+e2e/env/certs/*.csr

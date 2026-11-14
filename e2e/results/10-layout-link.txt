@@ -1,0 +1,114 @@
+wpmigrate 1.0.0 - copy a WordPress site to this server (10 steps).
+You can stop at any time with Ctrl+C and run the tool again later; it continues where it stopped.
+
+[1/10] Questions about the site
+
+What is the address of the WordPress site you want to copy? (for example
+https://example.com)
+> src-a.test
+
+Administrator username (or e-mail) on that site
+> admin
+
+Password for the administrator account "admin" (it is not shown while you
+type)
+> 
+
+What address will the copied site use? Press Enter to keep the same address
+(you will switch the domain to this server later). [https://src-a.test]
+> https://dest.test
+
+[2/10] Checking this server
+  Using PHP 8.3.6 at /usr/bin/php.
+  Reprint client v0.11.8 is ready.
+
+[3/10] Logging in to the source site
+  Logged in to the source site as an administrator.
+
+[4/10] Reprint plugin on the source site
+  Installing the Reprint plugin on the source site...
+  Reprint plugin installed and activated on the source site.
+
+[5/10] Authorizing this server on the source site
+  Authorized this server on the source site with a Migration Token.
+
+[6/10] Downloading the site
+  Checking the source site (preflight)...
+  The source runs WordPress 7.1.4 on PHP 8.2.35.
+  Downloading the site's files. This can take a while; if the connection drops, run the tool again and it continues.
+    1.1% Downloading files: 93 of 3,839 files, 1.7 of 163.0 MB                   11.4% Downloading files: 914 of 3,839 files, 18.5 of 163.0 MB                 50.8% Downloading files: 1,171 of 3,839 files, 82.8 of 163.0 MB               52.9% Downloading files: 2,179 of 3,839 files, 86.3 of 163.0 MB               58.8% Downloading files: 2,471 of 3,839 files, 95.9 of 163.0 MB               91.5% Downloading files: 3,068 of 3,839 files, 149.1 of 163.0 MB             100.0% Downloading files: 3,839 of 3,839 files, 163.0 of 163.0 MB           
+  All files are downloaded.
+  Downloading the database into a file...
+  The database is downloaded (122.7 KB).
+
+[7/10] Setting up the destination
+
+Press Enter for this folder, type a subfolder name such as blog, or a full
+path.
+Install the site in this folder, or in another one (for example a subfolder)?
+[/home/wpuser/www/dest.test/public_html]
+> 
+  Now the database for the copied site. Create an empty database and a user for it in your hosting panel if you have not yet.
+
+Database host [localhost]
+> 172.30.0.12
+
+Database name
+> site_new
+
+Database user
+> site_new
+
+Database password (it is not shown while you type)
+> 
+  Connected to the database site_new (MySQL 10.11.19-MariaDB-ubu2204).
+
+Import the copied site into the database site_new, replacing any tables that
+start with wp_? [y/N] y
+
+[8/10] Installing the copied site
+  Importing the database and changing the address to https://dest.test...
+    0.0% Importing the database: 0 database statements, 0.0 of 0.1 MB           100.0% Importing the database: 41 database statements, 0.1 of 0.1 MB        
+  Wrote wp-config.php with the new database details.
+  WordPress starts correctly in the new location.
+  ! The old site ran on PHP 8.2, but here it is PHP 8.3 (from the command-line
+    PHP on this server (the website may use a different version; check your
+    hosting panel)). Older plugins and themes can break on a different PHP
+    version. If something looks wrong, choose the same PHP version in your
+    hosting panel.
+
+[9/10] Tidying up the source site
+
+The copy is finished. Tidy up the source site now (remove this server's access
+and the Reprint plugin)? [Y/n] 
+  Removed this server's Migration Token from the source site.
+  Deactivated and deleted the Reprint plugin on the source site (this tool had installed it).
+
+[10/10] Summary
+  Deleted the downloaded database file and the source login cookies.
+
+Done! Here is what to know:
+- The copied site is in /home/wpuser/www/dest.test/public_html and uses the
+  address https://dest.test.
+- Its database is site_new on 172.30.0.12.
+- Make sure the domain of https://dest.test points to this hosting account.
+- Check: the home page, a few posts and pages, images, the admin login,
+  contact forms, and any shop checkout.
+- Careful: the copy is a live WordPress site. It may send e-mails (to
+  customers too) and take real payments, and scheduled tasks will run. Switch
+  off what must not run twice.
+- Reprint's working files in /home/wpuser/.wpmigrate/sites/src-a.test/reprint-
+  state include the new database password (readable only by your account).
+  Delete that folder when you no longer need to copy the site again.
+- Logs and saved progress for this copy are in
+  /home/wpuser/.wpmigrate/sites/src-a.test.
+
+[drive] exit code: 0
+FAIL https://dest.test/ -> HTTP 403, missing 'SRC-A-7731'
+FAIL https://dest.test/sample-page/ -> HTTP 404, missing 'Sample Page'
+css: 
+--- why
+drwx------ 3 wpuser wpuser 4096 Nov 14 22:38 /home/wpuser/.wpmigrate
+drwx------ 7 wpuser wpuser 4096 Nov 14 22:38 /home/wpuser/.wpmigrate/sites/src-a.test
+
+Decision: the link layout was removed from the tool; move (default) and copy remain.

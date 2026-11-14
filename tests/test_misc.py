@@ -1,0 +1,139 @@
+"""Tests for wp-config editing, Reprint output parsing, redaction and helpers."""
+
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from wpmigrate.engine import destination, wpconfig
+from wpmigrate.engine.php import parse_version
+from wpmigrate.engine.reprint import LAUNCHER, ReprintRunner, describe_progress, is_final_report, parse_jsonl_line, progress_percent
+from wpmigrate.engine.source import normalize_site_url, reprint_api_url
+from wpmigrate.redact import Redactor
+
+CONFIG = """<?php
+// ** Database settings ** //
+define( 'DB_NAME', 'old_db' );
+/** define('DB_NAME', 'commented'); */
+define( 'DB_USER', getenv_docker('WORDPRESS_DB_USER', 'example (user)') );
+define( "DB_PASSWORD", 'it\\'s secret' );
+define( 'DB_HOST', 'localhost' );
+define( 'WP_HOME', 'https://old.example' );
+$table_prefix = 'wp_';
+/* That's all, stop editing! Happy publishing. */
+require_once ABSPATH . 'wp-settings.php';
+"""
+
+
+class WpConfigTests(unittest.TestCase):
+    def test_read(self):
+        self.assertEqual(wpconfig.read_define(CONFIG, "DB_NAME"), "old_db")
+        self.assertEqual(wpconfig.read_define(CONFIG, "DB_PASSWORD"), "it's secret")
+        self.assertIsNone(wpconfig.read_define(CONFIG, "DB_USER"))  # not a literal
+        self.assertEqual(wpconfig.read_table_prefix(CONFIG), "wp_")
+
+    def test_apply_destination(self):
+        settings = wpconfig.DatabaseSettings("db.internal:3307", "new_db", "new_user", "p'w\\d", "abc_")
+        text = wpconfig.apply_destination(CONFIG, db=settings, site_url="https://new.example")
+        self.assertEqual(wpconfig.read_define(text, "DB_NAME"), "new_db")
+        self.assertEqual(wpconfig.read_define(text, "DB_USER"), "new_user")
+        self.assertEqual(wpconfig.read_define(text, "DB_PASSWORD"), "p'w\\d")
+        self.assertEqual(wpconfig.read_define(text, "DB_HOST"), "db.internal:3307")
+        self.assertEqual(wpconfig.read_table_prefix(text), "abc_")
+        self.assertEqual(wpconfig.read_define(text, "WP_HOME"), "https://new.example")
+        self.assertIn("define('DB_NAME', 'commented')", text)  # comment untouched
+        self.assertNotIn("old_db", text)
+        self.assertNotIn("getenv_docker", text)
+
+    def test_add_missing_define(self):
+        text = wpconfig.set_define(CONFIG, "WP_CACHE", False)
+        self.assertLess(text.index("WP_CACHE"), text.index("That's all"))
+
+    def test_read_settings(self):
+        plain = CONFIG.replace("getenv_docker('WORDPRESS_DB_USER', 'example (user)')", "'u'")
+        settings = wpconfig.read_database_settings(plain)
+        self.assertEqual((settings.name, settings.user, settings.password, settings.table_prefix), ("old_db", "u", "it's secret", "wp_"))
+
+
+class ReprintOutputTests(unittest.TestCase):
+    def test_parse_lines(self):
+        self.assertIsNone(parse_jsonl_line("Downloading..."))
+        self.assertIsNone(parse_jsonl_line("{broken"))
+        self.assertIsNone(parse_jsonl_line("[1,2]"))
+        report = parse_jsonl_line('{"type":"reprint_report","schema_version":1,"command":"files-pull","status":"complete","exit_code":0}')
+        self.assertTrue(is_final_report(report))
+        self.assertFalse(is_final_report({"type": "reprint_report", "schema_version": 2}))
+
+    def test_progress(self):
+        record = {"progress": {"items": {"unit": "files", "done": 10, "total": 40}, "bytes": {"done": 50, "total": 200}, "current_table": None}}
+        self.assertEqual(progress_percent(record), 25.0)
+        self.assertIn("10 of 40 files", describe_progress(record))
+        self.assertEqual(progress_percent({"progress": {"items": {"done": 3, "total": 4}, "bytes": {"done": 1, "total": None}}}), 75.0)
+        self.assertIsNone(progress_percent({"progress": {"items": {"done": 3, "total": None}, "bytes": None}}))
+
+    def test_launcher_keeps_secrets_out_of_argv(self):
+        captured = {}
+
+        class FakeSystem:
+            def stream(self, argv, *, on_stdout_line, on_stderr_line, stdin_text=None, env=None, cwd=None):
+                captured["argv"] = argv
+                captured["stdin"] = stdin_text
+                on_stdout_line('{"type":"reprint_report","schema_version":1,"command":"db-apply","status":"complete","exit_code":0}')
+                return 0
+
+        runner = ReprintRunner(system=FakeSystem(), php="php", phar=Path("/x/reprint.phar"), state_dir=Path("/s"), fs_root=Path("/f"),
+                               api_url="https://e.test/?reprint-api", emit=lambda e: None, log=lambda m: None)
+        result = runner.run(["db-apply", "https://e.test/?reprint-api"], stage="deploy", secret_args=["--target-pass=hunter2"])
+        self.assertEqual(result.status, "complete")
+        self.assertNotIn("hunter2", " ".join(captured["argv"]))
+        self.assertIn("hunter2", captured["stdin"])
+        self.assertEqual(captured["argv"][4], LAUNCHER)
+
+
+class HelperTests(unittest.TestCase):
+    def test_normalize_site_url(self):
+        self.assertEqual(normalize_site_url("Example.com/"), "https://example.com")
+        self.assertEqual(normalize_site_url("https://example.com/blog/wp-admin/"), "https://example.com/blog")
+        self.assertEqual(reprint_api_url("https://example.com/blog"), "https://example.com/blog/?reprint-api")
+
+    def test_parse_version(self):
+        self.assertEqual(parse_version("8.2.10-1+ubuntu"), (8, 2, 10))
+        self.assertEqual(parse_version("7.4"), (7, 4, 0))
+
+    def test_domain_and_old_folder(self):
+        self.assertEqual(destination.site_domain("https://www.example.com/blog"), "example.com")
+        self.assertEqual(
+            destination.old_site_folder_guess(Path("/home/u/www/example.com/public_html"), "example.com"),
+            Path("/home/u/www/old.example.com/public_html"),
+        )
+
+    def test_split_entries(self):
+        with TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            for name in ("wp-admin", "wp-content"):
+                (folder / name).mkdir()
+            for name in ("wp-config.php", "index.php", ".htaccess", "google123.html", "robots.txt"):
+                (folder / name).write_text("x")
+            wordpress, other = destination.split_entries(folder)
+            self.assertEqual(sorted(wordpress), [".htaccess", "index.php", "wp-admin", "wp-config.php", "wp-content"])
+            self.assertEqual(other, ["google123.html", "robots.txt"])
+
+    def test_rewrite_base(self):
+        text = "Header set X 1\n# BEGIN WordPress\nRewriteEngine On\nRewriteBase /\nRewriteRule ^index\\.php$ - [L]\nRewriteRule . /index.php [L]\n# END WordPress\nRewriteBase /keep\n"
+        fixed = destination.set_rewrite_base(text, "/blog")
+        self.assertIn("RewriteBase /blog/\n", fixed)
+        self.assertIn("RewriteRule . /blog/index.php [L]", fixed)
+        self.assertIn("RewriteBase /keep", fixed)  # outside the WordPress block
+        self.assertEqual(destination.set_rewrite_base(fixed, "/"), text)
+
+    def test_redactor(self):
+        redact = Redactor()
+        redact.add("hunter2")
+        text = redact("pwd=hunter2&log=admin Cookie: wordpress_logged_in_1=abc _wpnonce=0123abcdef")
+        self.assertNotIn("hunter2", text)
+        self.assertNotIn("abc", text.split("Cookie:")[1])
+        self.assertNotIn("0123abcdef", text)
+        self.assertEqual(redact("MII" + "A" * 200), "[redacted-token]")
+
+
+if __name__ == "__main__":
+    unittest.main()

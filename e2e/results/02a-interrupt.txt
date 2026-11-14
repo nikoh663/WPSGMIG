@@ -1,0 +1,45 @@
+wpmigrate 1.0.0 - copy a WordPress site to this server (10 steps).
+You can stop at any time with Ctrl+C and run the tool again later; it continues where it stopped.
+
+[1/10] Questions about the site
+
+What is the address of the WordPress site you want to copy? (for example
+https://example.com)
+> https://src-a.test
+
+Administrator username (or e-mail) on that site
+> admin
+
+Password for the administrator account "admin" (it is not shown while you
+type)
+> 
+
+What address will the copied site use? Press Enter to keep the same address
+(you will switch the domain to this server later). [https://src-a.test]
+> https://dest.test
+
+[2/10] Checking this server
+  Using PHP 8.3.6 at /usr/bin/php.
+  Reprint client v0.11.8 is ready.
+
+[3/10] Logging in to the source site
+  Logged in to the source site as an administrator.
+
+[4/10] Reprint plugin on the source site
+  Installing the Reprint plugin on the source site...
+  Reprint plugin installed and activated on the source site.
+
+[5/10] Authorizing this server on the source site
+  Authorized this server on the source site with a Migration Token.
+
+[6/10] Downloading the site
+  Checking the source site (preflight)...
+  The source runs WordPress 7.1.4 on PHP 8.2.35.
+  Downloading the site's files. This can take a while; if the connection drops, run the tool again and it continues.
+    1.3% Downloading files: 111 of 3,839 files, 2.1 of 163.0 MB                  14.8% Downloading files: 1,098 of 3,839 files, 24.2 of 163.0 MB               51.4% Downloading files: 1,292 of 3,839 files, 83.8 of 163.0 MB            ^C
+
+Stopped. Run the tool again to continue where it stopped.
+
+[drive] exit code: 14
+--- right after the tool exited
+no Reprint process left running

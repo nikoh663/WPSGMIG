@@ -1,0 +1,56 @@
+{
+ "cwd": "/home/wpuser/www/dest.test/public_html",
+ "argv": [
+  "/usr/sbin/runuser",
+  "-u",
+  "wpuser",
+  "--",
+  "python3",
+  "/opt/wpmigrate/wpmigrate.pyz",
+  "--reprint-phar=/opt/wpmigrate/reprint.phar"
+ ],
+ "env": {
+  "HOME": "/home/wpuser",
+  "USER": "wpuser",
+  "LOGNAME": "wpuser",
+  "PATH": "/usr/local/bin:/usr/bin:/bin",
+  "TERM": "xterm",
+  "LANG": "C.UTF-8",
+  "SSL_CERT_FILE": "/etc/ssl/wpm-combined.pem",
+  "HTTPS_PROXY": "http://127.0.0.1:42347",
+  "https_proxy": "http://127.0.0.1:42347",
+  "NO_PROXY": "localhost,127.0.0.1,::1,127.0.0.0/8,0.0.0.0/8,::,169.254.0.0/16,api.anthropic.com,api-staging.anthropic.com,api-pr-preview.anthropic.com,mcp-proxy.anthropic.com,mcp-proxy-staging.anthropic.com,registry.npmjs.org,jsr.io,npm.jsr.io,pypi.org,files.pythonhosted.org,index.crates.io,proxy.golang.org,host.docker.internal,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,.svc.cluster.local,*.svc.cluster.local,.test",
+  "no_proxy": "localhost,127.0.0.1,::1,127.0.0.0/8,0.0.0.0/8,::,169.254.0.0/16,api.anthropic.com,api-staging.anthropic.com,api-pr-preview.anthropic.com,mcp-proxy.anthropic.com,mcp-proxy-staging.anthropic.com,registry.npmjs.org,jsr.io,npm.jsr.io,pypi.org,files.pythonhosted.org,index.crates.io,proxy.golang.org,host.docker.internal,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,.svc.cluster.local,*.svc.cluster.local,.test"
+ },
+ "steps": [
+  {
+   "expect": "Continue it\\?",
+   "send": "\n"
+  },
+  {
+   "expect": "Database host",
+   "send": "172.30.0.12\n"
+  },
+  {
+   "expect": "Database name",
+   "send": "site_new\n"
+  },
+  {
+   "expect": "Database user",
+   "send": "site_new\n"
+  },
+  {
+   "expect": "Database password",
+   "send": "New-Db-Pass-1\n"
+  },
+  {
+   "expect": "replacing any tables",
+   "send": "y\n"
+  },
+  {
+   "expect": "Tidy up the source site now",
+   "send": "y\n"
+  }
+ ],
+ "timeout": 900
+}

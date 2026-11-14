@@ -1,0 +1,1 @@
+The private keys of the test CA and the test site certificate were left out on purpose. To run the e2e setup again, make a new test CA and a certificate for src-a.test, src-b.test, dest.test and old.dest.test, and put ca.crt, site.crt and site.key here.
