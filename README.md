@@ -1,0 +1,2 @@
+# WPSGMIG
+WordPress migrator
