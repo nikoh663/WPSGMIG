@@ -59,13 +59,15 @@ extensions (all common on hosting). It runs as your normal hosting user and does
    - what to do with a WordPress site already in that folder (remove it, keep it
      at `old.<domain>`, or cancel);
    - the database details;
-   - what to do with files that are not part of WordPress. Files the host puts
-     there, such as `.well-known`, `cgi-bin` and `Default.html`, are left alone.
+   - what to do with files that are not part of WordPress: move them to a
+     backup folder, to the kept old site's folder, or to a folder you name;
+     remove them; or leave them. Files the host puts there, such as
+     `.well-known`, `cgi-bin` and `Default.html`, are left alone.
 8. Imports the database, puts the files in place, writes `wp-config.php`, and
    checks that WordPress starts.
 9. Removes this server's access and the plugin from the old site (the plugin
    only if this tool installed it).
-10. Prints a summary of what to check next.
+10. Prints a summary of what to check next, and where the time went.
 
 If any step on the old site fails (steps 3 to 5), for example because the host
 does not allow installing plugins, or there is a CAPTCHA or two-factor login, the

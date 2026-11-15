@@ -126,6 +126,9 @@ def _uncopied_bytes(ctx: Context, listed_bytes: int) -> int | None:
         site = source_site(ctx)
         if not site.client.has_cookie("wordpress_logged_in_"):
             return None
+        # WordPress counts every file for this, which can take long on a big
+        # site. It is only a nicety, so do not wait long for it.
+        site.client.timeout = 20
         site.discover()
         total = site.files_size()
     except Exception as error:  # noqa: BLE001 - only a nicety, never stop the copy for it
@@ -228,7 +231,8 @@ def stage_download(ctx: Context) -> None:
         ctx.info(f"Found WordPress {source.get('wordpressVersion')} running on PHP {php_info.get('version')}.")
 
     if not progress.get("measured"):
-        _measure(ctx, runner, credentials)
+        with ctx.timed("measuring the site"):
+            _measure(ctx, runner, credentials)
         progress["measured"] = True
         state.set("download", progress)
     excludes = [f"--exclude={path}" for path in state.get("excluded_paths") or []]
@@ -242,7 +246,8 @@ def stage_download(ctx: Context) -> None:
     if not progress.get("files"):
         ctx.info("Copying the files...")
         runner.bytes_total_check = _space_check(ctx, runner)
-        result = runner.run_to_completion([*runner.base_args("files-pull"), *rewrite, *excludes], stage="download", secret_args=credentials, progress_label="Copying files")
+        with ctx.timed("copying the files"):
+            result = runner.run_to_completion([*runner.base_args("files-pull"), *rewrite, *excludes], stage="download", secret_args=credentials, progress_label="Copying files")
         runner.bytes_total_check = None
         problem = state.get("disk_space_problem")
         if problem:
@@ -260,7 +265,8 @@ def stage_download(ctx: Context) -> None:
 
     if not progress.get("database"):
         ctx.info("Copying the database...")
-        result = runner.run_to_completion(runner.base_args("db-pull"), stage="download", secret_args=credentials, progress_label="Copying the database")
+        with ctx.timed("copying the database"):
+            result = runner.run_to_completion(runner.base_args("db-pull"), stage="download", secret_args=credentials, progress_label="Copying the database")
         if result.exit_code != 0:
             _fail(ctx, result, "Downloading the database")
         progress["database"] = True

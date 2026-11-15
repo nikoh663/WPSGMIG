@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.1                                │
+  │  wpmigrate 1.3.3                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -43,7 +43,7 @@
   › [y/N] y
 
  ◆ Putting everything in place
-  ✓ Importing the database  0.2 MB · 41 queries · 0s
+  ✓ Importing the database  213 MB · 286 queries · 10s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ WordPress starts up fine in its new home.
@@ -59,7 +59,7 @@
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (10s)
+  ✓ All done! Your site has been copied.  (15s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -72,6 +72,8 @@
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
+  • Where the time went: copying the files 14s, importing the database 10s,
+    copying the database 7s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
 
 [drive] exit code: 0

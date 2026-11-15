@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.1                                │
+  │  wpmigrate 1.3.3                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -41,14 +41,15 @@
 
  ◆ Copying your site
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
-  ✓ Your site is about 197.6 MB in total: 197.4 MB of files (3,843 files) and
-    304.0 KB of database (12 tables).
+  ✓ Your site is about 386.4 MB in total: 197.4 MB of files (3,843 files) and
+    189.1 MB of database (14 tables).
 
   Where the space goes:
       115.6 MB  WordPress itself
        57.2 MB  uploads (media)
        13.8 MB  themes
         9.5 MB  other files
+      188.8 MB  database table wp_big_log
 
   About 54.8 MB more on your original site is not part of the copy: backup
   archives made by backup plugins, plus cache and log files. I can see backup
@@ -69,8 +70,8 @@
   › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ✓ Copying files  163 MB · 3,839 files · 8s
-  ✓ The database is copied over (195.6 KB).
+  ✓ Copying files  163 MB · 3,839 files · 9s
+  ✓ The database is copied over (212.9 MB).
 
  ◆ Setting up its new home
 
@@ -80,8 +81,8 @@
   › 
 
   There is already a WordPress site in
-  /home/wpuser/www/dest.test/public_html/new. Its address is
-  https://dest.test/new.
+  /home/wpuser/www/dest.test/public_html/new. Its address is (address
+  unknown).
 
   ? What should happen to the site that is there now?
     1. Remove it and put the copy in its place.
@@ -111,9 +112,9 @@
   ? Database user
     Press Enter for site_new
   › 
-  ! The database site_new already has 12 table(s) starting with wp_
-    (wp_commentmeta, wp_comments, wp_links, wp_options, wp_postmeta, wp_posts
-    ...). They will be replaced by the copied site's tables.
+  ! The database site_new already has 14 table(s) starting with wp_
+    (wp_big_log, wp_commentmeta, wp_comments, wp_links, wp_nopk_log,
+    wp_options ...). They will be replaced by the copied site's tables.
 
   ? Ready to import into the database site_new? Any tables that start with wp_
     will be replaced.
@@ -121,7 +122,7 @@
 
  ◆ Putting everything in place
   ✓ Removed the previous site from /home/wpuser/www/dest.test/public_html/new.
-  ✓ Importing the database  0.2 MB · 41 queries · 0s
+  ✓ Importing the database  213 MB · 286 queries · 9s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html/new.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ Adjusted .htaccess so links work under /new.
@@ -138,7 +139,7 @@
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (37s)
+  ✓ All done! Your site has been copied.  (40s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html/new and uses the
     address https://dest.test/new.
@@ -151,6 +152,8 @@
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
+  • Where the time went: copying the files 11s, importing the database 9s,
+    copying the database 6s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
 
 [drive] exit code: 0

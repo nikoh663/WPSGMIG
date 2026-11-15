@@ -186,7 +186,8 @@ def build_parser() -> argparse.ArgumentParser:
     add("--db-user", metavar="USER", help="database user for the copied site")
     add("--replace-tables", action="store_true", default=None, help="confirm replacing tables in that database")
     add("--reuse-old-db", choices=("yes", "no"), help="use the removed site's database details")
-    add("--other-files", choices=("backup", "remove", "leave"), help="what to do with non-WordPress files in the folder")
+    add("--other-files", choices=("backup", "with_old", "move", "remove", "leave"), help="what to do with non-WordPress files in the folder (with_old: move them along with a kept old site; move: to --other-files-folder)")
+    add("--other-files-folder", metavar="PATH", help="where --other-files move puts them")
     add("--skip-backups", choices=("yes", "no"), help="leave leftover backups out of the copy (yes, the default) or copy all of them (no)")
     add("--cleanup-source", choices=("yes", "no"), help="remove the plugin and this server's access from the source at the end (default: yes)")
     add("--manual", action="store_true", help="do the source steps (plugin and authorization) yourself in the browser")
@@ -227,7 +228,7 @@ def presets_from(args: argparse.Namespace) -> dict[str, Any]:
     mapping = {
         "folder": "dest_folder", "existing_site": "existing_site", "confirm_domain": "confirm_remove_domain",
         "old_site_folder": "old_site_folder", "db_host": "db_host", "db_name": "db_name", "db_user": "db_user",
-        "other_files": "other_files",
+        "other_files": "other_files", "other_files_folder": "other_files_folder",
     }
     for attribute, key in mapping.items():
         value = getattr(args, attribute, None)

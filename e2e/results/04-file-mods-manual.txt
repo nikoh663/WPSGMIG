@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.1                                │
+  │  wpmigrate 1.3.3                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -53,7 +53,7 @@ Please finish these steps on your original site yourself:
 
 Migration Token (copy all of it):
 
-MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAjrzCAI+oFpF8dAvLnqXdcE2Cdcfc/ZG29dH6mb7cke3CTuUDVNOrjsSh8p9jRP3xBAEzMZgDEl6o0cZgOSDn/cJO25oF8G3Rr69CjLxKAxiH3s5KovgjxMwZ0Pec2e3MTEdFG6vcxRElojVkOKl0xjBnbBucui4WgkNeG4TglwmjlI1EDVXrn9VoCCbYK7Z/M2td+l/hGqVHSntnneUzO8w/mZDGAkHatlmmsBge7xtSJKmOtxoiUEi5UNWG3wlZ1mhnGPpShQz/78hg5yu6HoiywXUgSZBBvHACFgvHwYLIqDhH6ABaVbSnFyzVoE3t71tsAdNf2XcHOnLoq9z6+fkxnddy/dmbThuzmYe0A3GF//mXBRxIxQxuArgNS13ixUoHV0R0lUScNWLHwcu0pxCkWe8IA1F3CQHwEKVxxDCTmTKlSVfhrTVMUIpyA4Ik0/WMQeUs/RM09itbEDWmFmPDjkqWOkaIHa5YzMxN9TS6YJa9aPMOEKyU++CcDdA7AgMBAAE=
+MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAxGziaPhIHkYiIWwntZGdVCHy+R18v2IIuRHDDrFjmmHp9UwJCIO1MpohgeqZEUcCQ4nXVJYGIUIM66dNqey43YYerCLw9Zrge4u3ngKA4kD5ODTm12R3zZIzu+7ZWGW+cm9fTJDwLRK6RKmTbqN1smKIEr4l8O0Fet/Sn7qhn3Dci4G9FVdbMKqPRqECOzdSJTXnp2Z+6bClQwjqQu+pVNzYotqDLwyBycYL2YndHMVjsk1XNXqPbPw7RrZWeo+Vx0/YR8rif6zc0ZYeqLbZb/HPu47P9f1eYLyeXonhm4FCGEae6UfnER6OA/B3nHmsfCkWD43EFEDW8lfw7BTjwr+OV/f4RwSkxW5SoVewD5HOhNnIyogulolu82JqQHuy1r4JZkFS87yt8Bb2vJ3ljRqet/CSQPyf6PO+uVXp+OykuYyBJCDhv2+b2eltTwF8A3K+0gd3ILJgLpP1dx0u3FEqF+fBXhMYdZhqCb6TsgeD3+mqoAbov3onBNGMhXHXAgMBAAE=
 ──────────────────────────────────────────────────────────────────────────────
 
   ? Press Enter when the page says "Client authorized". If it asked for a
@@ -70,8 +70,8 @@ MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAjrzCAI+oFpF8dAvLnqXdcE2Cdcfc/ZG29dH6
     connection token, paste that token and press Enter (it is not shown).
 
 [drive] meanwhile in the hosting panel: the host installs and activates Reprint (plugin installs are disabled in wp-admin), then the administrator pastes the Migration Token in Tools > Reprint Server and clicks Authorize client (done here with the same function that form calls)
-Success: Plugin already activated.
 Warning: Plugin 'reprint' is already active.
+Success: Plugin already activated.
 saved
   › 
   ✓ Your original site now accepts this server.
@@ -79,7 +79,7 @@ saved
  ◆ Copying your site
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
   ✓ Your site is about 163.3 MB in total: 163.0 MB of files (3,839 files) and
-    272.0 KB of database (12 tables).
+    304.0 KB of database (12 tables).
 
   Where the space goes:
        90.8 MB  WordPress itself
@@ -90,8 +90,8 @@ saved
   Backup archives made by plugins such as All-in-One WP Migration, UpdraftPlus
   and Duplicator are never part of the copy, and neither are cache and log
   files.
-  ✓ Copying files  163 MB · 3,839 files · 10s
-  ✓ The database is copied over (160.0 KB).
+  ✓ Copying files  163 MB · 3,839 files · 12s
+  ✓ The database is copied over (160.4 KB).
 
  ◆ Setting up its new home
 
@@ -138,7 +138,7 @@ saved
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (35s)
+  ✓ All done! Your site has been copied.  (27s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -149,6 +149,7 @@ saved
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
+  • Where the time went: copying the files 14s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-b.test.
 
 [drive] exit code: 0

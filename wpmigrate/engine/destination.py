@@ -299,3 +299,21 @@ foreach ($wpdb->get_col('SHOW TABLES') as $table) {
 }
 echo "changed $changed\n";
 """
+
+
+def human_duration(seconds: float) -> str:
+    """A short duration such as ``45s``, ``2m 28s`` or ``1h 5m``."""
+    seconds = int(round(seconds))
+    if seconds < 60:
+        return f"{seconds}s"
+    if seconds < 3600:
+        return f"{seconds // 60}m {seconds % 60}s"
+    return f"{seconds // 3600}h {seconds % 3600 // 60}m"
+
+
+def timing_summary(timings: dict[str, float]) -> str | None:
+    """The steps that took a noticeable time, longest first."""
+    steps = sorted(((spent, label) for label, spent in timings.items() if spent >= 5), reverse=True)
+    if not steps:
+        return None
+    return "Where the time went: " + ", ".join(f"{label} {human_duration(spent)}" for spent, label in steps) + "."

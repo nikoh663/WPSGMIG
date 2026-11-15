@@ -270,3 +270,11 @@ class TemporaryAddressTests(unittest.TestCase):
             for old, new in pairs:
                 text = text.replace(old, new)
             self.assertEqual(text, expected)
+
+
+class TimingTests(unittest.TestCase):
+    def test_summary_lists_long_steps_longest_first(self):
+        text = destination.timing_summary({"copying the files": 723.4, "importing the database": 148, "changing the address": 3})
+        self.assertEqual(text, "Where the time went: copying the files 12m 3s, importing the database 2m 28s.")
+        self.assertIsNone(destination.timing_summary({"changing the address": 3}))
+        self.assertEqual(destination.human_duration(3900), "1h 5m")

@@ -64,6 +64,10 @@ def main() -> int:
     steps = list(script.get("steps", []))
     timeout = float(script.get("timeout", 900))
     env = dict(script.get("env", {}))
+    # The proxy address of the test machine changes between sessions: use the current one.
+    for key in ("HTTPS_PROXY", "https_proxy"):
+        if os.environ.get(key) and key in env:
+            env[key] = os.environ[key]
     pid, fd = pty.fork()
     if pid == 0:
         os.chdir(script["cwd"])

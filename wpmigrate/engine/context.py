@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -78,6 +79,19 @@ class Context:
 
     def warn(self, message: str, **details: object) -> None:
         self.emit(Status.WARNING, message, **details)
+
+    @contextlib.contextmanager
+    def timed(self, label: str):
+        """Add the time a step takes to the totals shown in the summary."""
+        started = time.monotonic()
+        try:
+            yield
+        finally:
+            spent = time.monotonic() - started
+            timings = dict(self.st.get("timings") or {})
+            timings[label] = round(float(timings.get(label, 0)) + spent, 1)
+            self.st.set("timings", timings)
+            self.log(f"time: {label} took {spent:.1f}s")
 
     def log(self, message: str) -> None:
         """Append a redacted line to the private log file."""

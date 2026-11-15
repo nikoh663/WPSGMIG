@@ -24,14 +24,15 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   Taking a look at your original site...
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
   Measuring your site...
-  ✓ Your site is about 197.7 MB in total: 197.4 MB of files (3,843 files) and
-    320.0 KB of database (13 tables).
+  ✓ Your site is about 386.4 MB in total: 197.4 MB of files (3,843 files) and
+    189.1 MB of database (14 tables).
 
   Where the space goes:
       115.6 MB  WordPress itself
        57.2 MB  uploads (media)
        13.8 MB  themes
         9.5 MB  other files
+      188.8 MB  database table wp_big_log
 
   About 54.8 MB more on your original site is not part of the copy: backup
   archives made by backup plugins, plus cache and log files. I can see backup
@@ -47,11 +48,11 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
   Copying the files...
-    1.3% Copying files: 112 of 3,839 files, 2.1 of 163.0 MB
+    1.4% Copying files: 124 of 3,839 files, 2.3 of 163.0 MB
   100.0% Copying files: 3,839 of 3,839 files, 163.0 of 163.0 MB
   ✓ All files are copied over.
   Copying the database...
-  ✓ The database is copied over (199.5 KB).
+  ✓ The database is copied over (212.9 MB).
 
  ◆ Setting up its new home
 
@@ -61,7 +62,7 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
 
  ◆ Putting everything in place
   Importing the database and changing the address to https://src-a.test/new...
-  100.0% Importing the database: 44 database statements, 0.2 of 0.2 MB
+  100.0% Importing the database: 286 database statements, 212.9 of 212.9 MB
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html/new.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ Adjusted .htaccess so links work under /new.
@@ -79,7 +80,7 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (36s)
+  ✓ All done! Your site has been copied.  (1m 26s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html/new and uses the
     address https://src-a.test/new.
@@ -93,6 +94,8 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
+  • Where the time went: changing the address 52s, copying the files 11s,
+    importing the database 9s, copying the database 6s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
 [exit code: 0]
 --- checks (WP-CLI on the copy)
@@ -105,9 +108,9 @@ guid of the Reviews page: https://src-a.test/new/reviews/
 values anywhere with the temporary address: 0
 rows with the temporary address: 0
 --- timing from the log
-2026-11-15 21:16:07 [deploy] info: Changing the address to https://src-a.test/new...
-2026-11-15 21:16:08 search-replace https://wpmigrate-new-address.invalid -> https://src-a.test/new: Success: Made 19 replacements.
-2026-11-15 21:16:09 search-replace https:\/\/wpmigrate-new-address.invalid -> https:\/\/src-a.test\/new: Success: Made 0 replacements.
-2026-11-15 21:16:09 search-replace wpmigrate-new-address.invalid -> src-a.test/new: Success: Made 1 replacement.
-2026-11-15 21:16:09 tables without a primary key: changed 2
-2026-11-15 21:16:09 [deploy] info: The address is now https://src-a.test/new everywhere in the database.
+2026-11-15 22:05:04 [deploy] info: Changing the address to https://src-a.test/new...
+2026-11-15 22:05:51 search-replace https://wpmigrate-new-address.invalid -> https://src-a.test/new: Success: Made 120019 replacements.
+2026-11-15 22:05:53 search-replace https:\/\/wpmigrate-new-address.invalid -> https:\/\/src-a.test\/new: Success: Made 0 replacements.
+2026-11-15 22:05:55 search-replace wpmigrate-new-address.invalid -> src-a.test/new: Success: Made 1 replacement.
+2026-11-15 22:05:55 tables without a primary key: changed 2
+2026-11-15 22:05:55 [deploy] info: The address is now https://src-a.test/new everywhere in the database.

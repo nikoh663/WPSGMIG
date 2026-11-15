@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from wpmigrate.engine.destination import human_size, site_domain
+from wpmigrate.engine.destination import human_size, site_domain, timing_summary
 from wpmigrate.engine.context import Context
 from wpmigrate.engine.errors import MigrationError, SourceStepFailed
 from wpmigrate.engine.events import Status
@@ -111,10 +111,15 @@ def stage_summary(ctx: Context) -> None:
     other = state.data["destructive"].get("other_files")
     if other and other.get("backup"):
         lines.append(f"Files that were in the folder before were moved to {other['backup']}.")
+    if other and other.get("target"):
+        lines.append(f"Files that were in the folder before were moved to {other['target']}.")
     if state.get("source_cleanup") in ("skipped", "manual"):
         lines.append("Your original site still has the transfer plugin (Reprint) and this server's access. Remove them when you no longer need them.")
     if ctx.p.reprint_state.exists():
         lines.append(f"The working files in {ctx.p.reprint_state} include the new database password (readable only by your account). Delete that folder when you no longer need to copy the site again.")
+    timing = timing_summary(state.get("timings") or {})
+    if timing:
+        lines.append(timing)
     lines.append(f"The log of this copy is kept in {ctx.p.root}.")
     ctx.emit(Status.DONE, "All done! Your site has been copied.", action_required="\n".join(f"- {line}" for line in lines))
     own = state.get("tool_location")

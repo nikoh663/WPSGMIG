@@ -404,19 +404,37 @@ def decide_other_files(ctx: Context, folder: Path) -> None:
         return
     listing = "\n".join(f"  {name}" for name in other[:40]) + ("\n  ..." if len(other) > 40 else "")
     ctx.note(f"The folder {folder} also contains files that are not part of a WordPress site:\n{listing}")
-    action = ctx.prompter.ask_choice(
-        ChoiceQuestion(
-            "other_files",
-            "What should happen to them?",
-            [
-                Choice("backup", f"Move them to a dated backup folder in {ctx.p.backups}."),
-                Choice("remove", "Remove them."),
-                Choice("leave", "Leave them where they are."),
-            ],
-            default="backup",
-        )
-    )
-    state.update({"other_files_action": action, "other_files": other})
+    choices = [Choice("backup", f"Move them to a dated backup folder in {ctx.p.backups}.")]
+    old_folder = state.get("old_site_folder") if state.get("existing_action") == "keep" else None
+    if old_folder:
+        choices.append(Choice("with_old", f"Move them to the old site's folder, {old_folder}."))
+    choices += [
+        Choice("move", "Move them to another folder that I name."),
+        Choice("remove", "Remove them."),
+        Choice("leave", "Leave them where they are."),
+    ]
+    action = ctx.prompter.ask_choice(ChoiceQuestion("other_files", "What should happen to them?", choices, default="backup"))
+    target = None
+    if action == "with_old":
+        action, target = "move", Path(old_folder)
+    elif action == "move":
+        for attempt in range(3):
+            answer = ctx.prompter.ask_text(TextQuestion(
+                "other_files_folder",
+                "Which folder should they move to?",
+                help="Type a full path, or a path starting with ~ for your home folder. The folder is created if it does not exist.",
+            )).strip()
+            candidate = Path(os.path.expanduser(answer)) if answer else None
+            if candidate is None or not candidate.is_absolute():
+                ctx.warn("Please type a full path, for example ~/old-files.")
+            elif candidate.resolve() == folder.resolve() or folder.resolve() in candidate.resolve().parents:
+                ctx.warn(f"That is inside {folder}, where the copy goes. Please choose a folder outside it.")
+            else:
+                target = candidate
+                break
+        if target is None:
+            raise DestinationFailed("No usable folder was given for the other files.", "Run the tool again and give a full path outside the site folder, or pick another choice.")
+    state.update({"other_files_action": action, "other_files": other, "other_files_target": str(target) if target else None})
 
 
 def stage_destination(ctx: Context) -> None:
@@ -451,6 +469,22 @@ def _clear_folder(ctx: Context, folder: Path) -> None:
                     LocalSystem.move(folder / name, backup / name)
             state.record_destructive("other_files", action=action, backup=str(backup), entries=other)
             ctx.info(f"Moved {len(other)} other item(s) to {backup}.")
+        elif action == "move":
+            target = Path(state.get("other_files_target"))
+            target.mkdir(parents=True, exist_ok=True)
+            moved, skipped = [], []
+            for name in other:
+                if (folder / name).exists() or (folder / name).is_symlink():
+                    # Never overwrite something that is already there.
+                    if (target / name).exists() or (target / name).is_symlink():
+                        skipped.append(name)
+                    else:
+                        LocalSystem.move(folder / name, target / name)
+                        moved.append(name)
+            state.record_destructive("other_files", action=action, target=str(target), entries=moved, left=skipped)
+            ctx.info(f"Moved {len(moved)} other item(s) to {target}.")
+            if skipped:
+                ctx.warn(f"{', '.join(skipped)} already exist in {target}, so I left them in {folder}.")
         else:
             for name in other:
                 if (folder / name).exists() or (folder / name).is_symlink():
@@ -484,7 +518,8 @@ def _apply_database(ctx: Context, runner: ReprintRunner) -> None:
     secret = [f"--target-pass={db_password(ctx)}"]
     if not state.get("db_applied"):
         ctx.info("Importing the database" + (f" and changing the address to {new_url}" if steps[0] else "") + "...")
-        result = runner.run_to_completion([*runner.base_args("db-apply"), *target, *steps[0]], stage="deploy", secret_args=secret, progress_label="Importing the database")
+        with ctx.timed("importing the database"):
+            result = runner.run_to_completion([*runner.base_args("db-apply"), *target, *steps[0]], stage="deploy", secret_args=secret, progress_label="Importing the database")
         if result.exit_code != 0:
             raise DestinationFailed(
                 f"Importing the database failed: {result.error or 'no details'}",
@@ -705,10 +740,12 @@ def stage_deploy(ctx: Context) -> None:
     runner = reprint_runner(ctx)
     _clear_folder(ctx, folder)
     _apply_database(ctx, runner)
-    _place_files(ctx, runner, folder)
+    with ctx.timed("putting the files in place"):
+        _place_files(ctx, runner, folder)
     _write_config(ctx, folder)
     _fix_rewrite_rules(ctx, folder)
-    _finish_address(ctx, runner, folder)
+    with ctx.timed("changing the address"):
+        _finish_address(ctx, runner, folder)
     if not state.get("runtime_applied"):
         # apply-runtime only generates configuration for php-builtin, nginx-fpm
         # and playground-cli ("none" is rejected despite its help text). The

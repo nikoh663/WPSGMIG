@@ -77,7 +77,7 @@
   },
   {
    "expect": "What should happen to them",
-   "send": "2\n"
+   "send": "3\n"
   },
   {
    "expect": "tidy up your original site",
