@@ -11,7 +11,7 @@ from wpmigrate.engine.stages_source import reprint_runner
 from wpmigrate.engine.system import LocalSystem
 
 _BLOCKED_HINTS = {
-    "CLOUDFLARE_CHALLENGE": "A Cloudflare browser check on the source blocks the transfer. Ask the site's administrator to turn it off for requests to the Reprint address (the site address followed by /?reprint-api) or to allow this server's IP address, then run the tool again.",
+    "CLOUDFLARE_CHALLENGE": "A Cloudflare browser check on the source blocks the transfer. Ask the site's administrator to turn it off for requests to the transfer address (the site address followed by /?reprint-api) or to allow this server's IP address, then run the tool again.",
     "WORDFENCE_BLOCKED": "Wordfence or another firewall on the source blocked the transfer. Wait for the block to expire, or ask the administrator to allow this server's IP address, then run the tool again.",
     "RATE_LIMITED": "The source site is limiting requests. Wait a few minutes and run the tool again; the download continues where it stopped.",
 }
@@ -64,7 +64,7 @@ def stage_download(ctx: Context) -> None:
     progress = state.get("download", {}) or {}
 
     if not progress.get("preflight"):
-        ctx.info("Checking the source site (preflight)...")
+        ctx.info("Checking the source site...")
         result = runner.run_to_completion(runner.base_args("preflight"), stage="download", secret_args=credentials)
         if result.exit_code != 0:
             _fail(ctx, result, "Checking the source site")
@@ -100,7 +100,7 @@ def stage_download(ctx: Context) -> None:
         rewrite = [f"--new-site-url={new_url}"]
 
     if not progress.get("files"):
-        ctx.info("Downloading the site's files. This can take a while; if the connection drops, run the tool again and it continues.")
+        ctx.info("Downloading the site's files...")
         runner.bytes_total_check = _space_check(ctx, runner)
         result = runner.run_to_completion([*runner.base_args("files-pull"), *rewrite], stage="download", secret_args=credentials, progress_label="Downloading files")
         runner.bytes_total_check = None
@@ -116,14 +116,14 @@ def stage_download(ctx: Context) -> None:
             _fail(ctx, result, "Downloading the files")
         progress["files"] = True
         state.set("download", progress)
-        ctx.info("All files are downloaded.")
+        ctx.info("All files are downloaded.", after_progress=True)
 
     if not progress.get("database"):
-        ctx.info("Downloading the database into a file...")
+        ctx.info("Downloading the database...")
         result = runner.run_to_completion(runner.base_args("db-pull"), stage="download", secret_args=credentials, progress_label="Downloading the database")
         if result.exit_code != 0:
             _fail(ctx, result, "Downloading the database")
         progress["database"] = True
         state.set("download", progress)
         size = ctx.p.sql_dump.stat().st_size if ctx.p.sql_dump.exists() else 0
-        ctx.info(f"The database is downloaded ({human_size(size)}).")
+        ctx.info(f"The database is downloaded ({human_size(size)}).", after_progress=True)

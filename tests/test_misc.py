@@ -125,6 +125,34 @@ class HelperTests(unittest.TestCase):
         self.assertIn("RewriteBase /keep", fixed)  # outside the WordPress block
         self.assertEqual(destination.set_rewrite_base(fixed, "/"), text)
 
+    def test_address_for_folder(self):
+        guess = destination.address_for_folder
+        self.assertEqual(guess(Path("/home/u/www/example.com/public_html/new")), "https://example.com/new")
+        self.assertEqual(guess(Path("/home/u/www/Example.com/public_html")), "https://example.com")
+        self.assertEqual(guess(Path("/home/u/sub.example.co.uk/htdocs/a/b")), "https://sub.example.co.uk/a/b")
+        self.assertIsNone(guess(Path("/home/u/public_html/new")))
+        self.assertIsNone(guess(Path("/var/www/html")))
+
+    def test_renderer_plain_output(self):
+        import io
+        from wpmigrate.engine.events import Event, Status
+        from wpmigrate.ui import Renderer, Terminal, format_bytes, format_duration
+        out = io.StringIO()
+        renderer = Renderer(Terminal(out))
+        renderer.emit(Event("download", Status.STARTED, "Downloading the site", details={"number": 6, "total": 10}))
+        renderer.emit(Event("download", Status.INFO, "Checking the source site..."))
+        renderer.emit(Event("download", Status.PROGRESS, "Downloading files: 1 of 2 files", percent=100.0, details={"label": "Downloading files", "bytes_done": 5, "bytes_total": 5}))
+        renderer.emit(Event("download", Status.WARNING, "Careful with https://very-long-host-name.example.com/path"))
+        renderer.emit(Event("download", Status.FAILED, "It broke.", action_required="Run it again."))
+        text = out.getvalue()
+        self.assertNotIn("\x1b", text)  # no colours when the output is not a terminal
+        self.assertIn("6/10", text)
+        self.assertIn("100.0% Downloading files", text)
+        self.assertIn("https://very-long-host-name.example.com/path", text)
+        self.assertIn("Run it again.", text)
+        self.assertEqual(format_bytes(480 * 1048576), "480 MB")
+        self.assertEqual(format_duration(125), "2m 05s")
+
     def test_redactor(self):
         redact = Redactor()
         redact.add("hunter2")

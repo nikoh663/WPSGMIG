@@ -1,37 +1,45 @@
-wpmigrate 1.0.0 - copy a WordPress site to this server (10 steps).
-You can stop at any time with Ctrl+C and run the tool again later; it continues where it stopped.
 
-[1/10] Questions about the site
+  ╭────────────────────────────────────────╮
+  │  wpmigrate 1.1.0                       │
+  │  Copy a WordPress site to this server  │
+  ╰────────────────────────────────────────╯
+  10 steps. Stop any time with Ctrl+C; run it again and it continues where it
+  stopped.
 
-What is the address of the WordPress site you want to copy? (for example
-https://example.com)
-> https://src-b.test
+ 1/10  Site details
 
-Administrator username (or e-mail) on that site
-> admin
+  ? What is the address of the WordPress site you want to copy?
+    For example https://example.com
+  › https://src-b.test
 
-Password for the administrator account "admin" (it is not shown while you
-type)
-> 
+  ? Administrator username (or e-mail) on that site
+    The login you use at wp-admin.
+  › admin
 
-What address will the copied site use? Press Enter to keep the same address
-(you will switch the domain to this server later). [https://src-b.test]
-> https://dest.test
+  ? Password for the administrator account "admin"
+    It is not shown while you type.
+  › 
 
-[2/10] Checking this server
-  Using PHP 8.3.6 at /usr/bin/php.
-  Reprint client v0.11.8 is ready.
+  ? What address will the copied site use?
+    This folder looks like it is served at https://dest.test. To keep the old
+    address instead (and point the domain here later), type https://src-b.test
+    Press Enter for https://dest.test
+  › https://dest.test
 
-[3/10] Logging in to the source site
-  Logged in to the source site as an administrator.
+ 2/10  Checking this server
+  ✓ Using PHP 8.3.6 at /usr/bin/php.
+  ✓ The transfer engine is ready.
 
-[4/10] Reprint plugin on the source site
-  Installing the Reprint plugin on the source site...
+ 3/10  Logging in to the source site
+  ✓ Logged in to the source site as an administrator.
+
+ 4/10  Preparing the source site
   ! The source site does not allow installing plugins from wp-admin (plugin
     and theme installation is switched off in its configuration).
 
-==============================================================================
+──────────────────────────────────────────────────────────────────────────────
 Please finish these steps on the source site yourself:
+
 1. Open https://src-b.test/wp-admin/ in your browser and log in as an
    administrator.
 2. In the left menu choose Plugins → Add New Plugin (Add New on older sites).
@@ -49,91 +57,96 @@ Please finish these steps on the source site yourself:
 
 Migration Token (copy all of it):
 
-MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEApAKA9MPbP9zqHmZCyzx5MqbnNuk7LMCKjqT8pVesy5FNKDc+8UFI3JihwLUBpysjKsjTdNYw6b7E0d5rLT+aAZW69evKK3cdIqZ0wYInBaC00sVnf4inv3DBCREcxyrQKcD95z8+g/4+zG0s//GF4I4SJggCkDEhT39Jdby8Z8Lr/nzJyct09cggbwojxpV+ZonYaDeceyJk1lfoyWmmUcaTvds0v7JN6KVZW8WtnE73ewxPNZiJB+WIYkOHh4B7sS+KSaQFa/z6THnMds2RHVJjFhg6W3VCovdGzdWp0CvptD5FfHjaMacISMRDoNwd97r6YoNp/ANLTJVCSv5j9menFuIgNge2llTCmqy1MGNCPDcJK1cvxQClcCDlEOtS+Yg9H3hv86zNSVsfWhkUh7j7NF4MlqNKMUId2guRuHKrh/vS893/SiLDPCAXGuoq/SMTDvomCg8VdBCWOhLygefRFVNTblt1s+asT4cdIH1dQnhsdUIMozsGGj9mm0rRAgMBAAE=
-==============================================================================
+MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAl37qMX/uX1TE/cjljQZUsPaQa0oz4FX+sdvCVR1BBO52jPoxgNDGhsAlz1M9BXHBYBNCW0aD5kRiZNTH2x80cF92krKK209wnuHMH7SAeEsleboq+eV8oaYj/jTfdFS/neq8GbMa4hCGrGE/U85Y81XhUZRO1f0pDRSggFwdMx1jJB7XkDSYZzqyj4t2YFBfh3MzpDz1YX6JVCrXgnLD1K5Xz2Z9SDyFRcnMYnnlnmxHdZ9AkqJrvBHchR50sDaZghsrLQe9OHBRi91L+Xgx5Ucnhm4aKwVe21T3ItWeQymF0D9S1ooY1oSVnT9JwvQvc61BNY3CRK8W1O/cD9tHJZETAIUjKN4JXkAucyS7Kc1BY/tNZGAbaHSYxSOFtmA61bzCoEfL9fLjyYoO4nzkOzabBY7G9ULzPwJohryMxKfOSY7fCSJkhV8mfll/6x6dooUcY/QzM1xjSzBQTpQGfhJMP2XUBm+csJsCnhjfS5GErMYLA51OA40J4pY3ZtetAgMBAAE=
+──────────────────────────────────────────────────────────────────────────────
 
-Press Enter when the page says "Client authorized". If it asked for a
-connection token, paste that token and press Enter (it is not shown).
-> 
+  ? Press Enter when the page says "Client authorized". If it asked for a
+    connection token, paste that token and press Enter (it is not shown).
+  › 
   ! The source site does not accept this server yet (The Reprint Server plugin
     is not installed on the remote site. The server returned an HTML page
-    (HTTP 200) instead of a JSON API response.  Run `php reprint.phar install-
-    server` for setup instructions.). Check that the plugin is active and that
-    you clicked Authorize client.
+    (HTTP 200) instead of a JSON API response.
+    
+    Run `php reprint.phar install-server` for setup instructions.). Check that
+    the plugin is active and that you clicked Authorize client.
 
-Press Enter when the page says "Client authorized". If it asked for a
-connection token, paste that token and press Enter (it is not shown).
-> 
+  ? Press Enter when the page says "Client authorized". If it asked for a
+    connection token, paste that token and press Enter (it is not shown).
+
 [drive] meanwhile in the hosting panel: the host installs and activates Reprint (plugin installs are disabled in wp-admin), then the administrator pastes the Migration Token in Tools > Reprint Server and clicks Authorize client (done here with the same function that form calls)
-Success: Plugin already activated.
 Warning: Plugin 'reprint' is already active.
+Success: Plugin already activated.
 saved
+  › 
+  ✓ The source site now accepts this server.
 
-  The source site now accepts this server.
+ 6/10  Downloading the site
+  ✓ The source runs WordPress 7.1.4 on PHP 8.2.35.
+  ✓ Downloading files  163 MB · 3,839 files · 14s
+  ✓ The database is downloaded (117.3 KB).
 
-[6/10] Downloading the site
-  Checking the source site (preflight)...
-  The source runs WordPress 7.1.4 on PHP 8.2.35.
-  Downloading the site's files. This can take a while; if the connection drops, run the tool again and it continues.
-    1.3% Downloading files: 112 of 3,839 files, 2.1 of 163.0 MB                  12.8% Downloading files: 1,021 of 3,839 files, 20.8 of 163.0 MB               50.9% Downloading files: 1,191 of 3,839 files, 82.9 of 163.0 MB               55.5% Downloading files: 2,324 of 3,839 files, 90.5 of 163.0 MB               59.1% Downloading files: 2,521 of 3,839 files, 96.3 of 163.0 MB               88.1% Downloading files: 3,038 of 3,839 files, 143.6 of 163.0 MB             100.0% Downloading files: 3,839 of 3,839 files, 163.0 of 163.0 MB           
-  All files are downloaded.
-  Downloading the database into a file...
-  The database is downloaded (116.9 KB).
+ 7/10  Setting up the destination
 
-[7/10] Setting up the destination
+  ? Install the site in this folder, or in another one (for example a
+    subfolder)?
+    Press Enter for this folder, type a subfolder name such as blog, or a full
+    path.
+    Press Enter for /home/wpuser/www/dest.test/public_html
+  › 
 
-Press Enter for this folder, type a subfolder name such as blog, or a full
-path.
-Install the site in this folder, or in another one (for example a subfolder)?
-[/home/wpuser/www/dest.test/public_html]
-> 
-  Now the database for the copied site. Create an empty database and a user for it in your hosting panel if you have not yet.
+  Now the database for the copied site. If you have not yet, create an empty
+  database and a user for it in your hosting panel.
 
-Database host [localhost]
-> 172.30.0.12
+  ? Database host
+    Press Enter for localhost
+  › 172.30.0.12
 
-Database name
-> site_new
+  ? Database name
+  › site_new
 
-Database user
-> site_new
+  ? Database user
+  › site_new
 
-Database password (it is not shown while you type)
-> 
-  Connected to the database site_new (MySQL 10.11.19-MariaDB-ubu2204).
+  ? Database password
+    It is not shown while you type.
+  › 
+  ✓ Connected to the database site_new (MySQL 10.11.19-MariaDB-ubu2204).
 
-Import the copied site into the database site_new, replacing any tables that
-start with wp_? [y/N] y
+  ? Import the copied site into the database site_new, replacing any tables
+    that start with wp_?
+  › [y/N] y
 
-[8/10] Installing the copied site
-  Importing the database and changing the address to https://dest.test...
-    0.0% Importing the database: 0 database statements, 0.0 of 0.1 MB           100.0% Importing the database: 41 database statements, 0.1 of 0.1 MB        
-  Put the site's files in /home/wpuser/www/dest.test/public_html.
-  Wrote wp-config.php with the new database details.
-  WordPress starts correctly in the new location.
+ 8/10  Installing the copied site
+  ✓ Importing the database  0.1 MB · 41 queries · 0s
+  ✓ Put the site's files in /home/wpuser/www/dest.test/public_html.
+  ✓ Wrote wp-config.php with the new database details.
+  ✓ WordPress starts correctly in the new location.
+  ✓ The copy is online at https://dest.test.
 
-[9/10] Tidying up the source site
+ 9/10  Tidying up the source site
 
-The copy is finished. Tidy up the source site now (remove this server's
-access)? [Y/n] y
-  Removed this server's Migration Token from the source site.
+  ? The copy is finished. Tidy up the source site now (remove this server's
+    access)?
+  › [Y/n] y
+  ✓ Removed this server's access from the source site.
 
-[10/10] Summary
-  Deleted the downloaded database file and the source login cookies.
-  Deleted Reprint's working files (they contained the database password); its log is kept as reprint-audit.log.
+ 10/10  Summary
+  ✓ Deleted the downloaded database file and the login cookies.
+  ✓ Deleted the temporary working files.
 
-Done! Here is what to know:
-- The copied site is in /home/wpuser/www/dest.test/public_html and uses the
-  address https://dest.test.
-- Its database is site_new on 172.30.0.12.
-- Make sure the domain of https://dest.test points to this hosting account.
-- Check: the home page, a few posts and pages, images, the admin login,
-  contact forms, and any shop checkout.
-- Careful: the copy is a live WordPress site. It may send e-mails (to
-  customers too) and take real payments, and scheduled tasks will run. Switch
-  off what must not run twice.
-- Logs and saved progress for this copy are in
-  /home/wpuser/.wpmigrate/sites/src-b.test.
+  ✓ All done. Your site has been copied.  (36s)
+
+  • The copied site is in /home/wpuser/www/dest.test/public_html and uses the
+    address https://dest.test.
+  • Its database is site_new on 172.30.0.12.
+  • It is online now. Open it: https://dest.test
+  • Check: the home page, a few posts and pages, images, the admin login,
+    contact forms, and any shop checkout.
+  • Careful: the copy is a live WordPress site. It may send e-mails (to
+    customers too) and take real payments, and scheduled tasks will run.
+    Switch off what must not run twice.
+  • Logs and saved progress for this copy are in
+    /home/wpuser/.wpmigrate/sites/src-b.test.
 
 [drive] exit code: 0
 OK   https://dest.test/ -> HTTP 200, contains 'SRC-B-7731'

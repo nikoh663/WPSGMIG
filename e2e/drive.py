@@ -13,6 +13,7 @@ real interactive session (answers typed into hidden prompts are not echoed).
 
 from __future__ import annotations
 
+import codecs
 import json
 import os
 import pty
@@ -21,6 +22,41 @@ import select
 import signal
 import sys
 import time
+
+
+ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+class Screen:
+    """Prints what stays on the screen: colours removed, redrawn lines shown once."""
+
+    def __init__(self) -> None:
+        self.line = ""
+        self.carriage_return = False
+
+    def feed(self, data: str) -> None:
+        for piece in re.split(r"(\x1b\[[0-9;]*[A-Za-z]|\r|\n)", data):
+            if not piece:
+                continue
+            if piece == "\n":
+                sys.stdout.write(self.line + "\n")
+                self.line, self.carriage_return = "", False
+            elif piece == "\r":
+                self.carriage_return = True
+            elif piece.startswith("\x1b["):
+                if piece.endswith("K"):
+                    self.line, self.carriage_return = "", False
+            else:
+                if self.carriage_return:
+                    self.line, self.carriage_return = "", False
+                self.line += piece
+        sys.stdout.flush()
+
+    def flush(self) -> None:
+        if self.line:
+            sys.stdout.write(self.line + "\n")
+            self.line = ""
+        sys.stdout.flush()
 
 
 def main() -> int:
@@ -33,6 +69,9 @@ def main() -> int:
         os.chdir(script["cwd"])
         os.execvpe(script["argv"][0], script["argv"], env)
     buffer = ""
+    screen = Screen()
+    decoder = codecs.getincrementaldecoder("utf-8")("replace")
+    raw_log = open(os.environ["DRIVE_RAW"], "w", encoding="utf-8") if os.environ.get("DRIVE_RAW") else None
     started = time.monotonic()
     killed = False
     captured: dict[str, str] = {}
@@ -44,20 +83,26 @@ def main() -> int:
         ready, _, _ = select.select([fd], [], [], 0.5)
         if ready:
             try:
-                data = os.read(fd, 4096).decode("utf-8", "replace")
+                data = decoder.decode(os.read(fd, 4096))
             except OSError:
                 break
             if not data:
                 break
-            sys.stdout.write(data)
-            sys.stdout.flush()
-            buffer += data
+            if raw_log:
+                raw_log.write(data)
+                raw_log.flush()
+            screen.feed(data)
+            # Wrapped lines must not hide a phrase: compare with single spaces.
+            buffer = re.sub(r"\s+", " ", buffer + ANSI.sub("", data))
         while steps:
             step = steps[0]
             match = re.search(step["expect"], buffer)
             if not match:
                 break
             captured.update({key: value for key, value in match.groupdict().items() if value})
+            if "kill" in step or step.get("show"):
+                screen.flush()
+                print(f"\n[drive] on screen at this moment: {match.group(0).strip()}", flush=True)
             buffer = buffer[match.end():]
             steps.pop(0)
             if "run" in step:
@@ -81,6 +126,7 @@ def main() -> int:
                     killed = signame == "KILL"
         if killed:
             break
+    screen.flush()
     _, status = os.waitpid(pid, 0)
     code = os.waitstatus_to_exitcode(status)
     print(f"\n[drive] exit code: {code}", flush=True)

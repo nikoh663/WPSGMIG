@@ -1,6 +1,6 @@
 # Verification
 
-Each scenario was run end to end with `wpmigrate.pyz`. Scenario 2 was run on the final build. The others ran on the build just before the last fix, which only changed what happens on Ctrl+C while Reprint is running. The
+Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.1.0 (new interface and address detection). The
 tool ran as an unprivileged user (`wpuser`) inside a pseudo-terminal, typing
 answers the way a person would. The full output of each run is in
 `e2e/results/`, followed by independent checks made with curl, WP-CLI and SQL.
@@ -25,11 +25,12 @@ answers the way a person would. The full output of each run is in
 | 7 | "Keep", subdomain folder never created | `07-keep-no-subdomain.txt` | Pass. It offers check again, another path, or cancel. Nothing is moved, the old site is still served, and the new database stays empty. Exit 14. |
 | 8 | Stopped at stage 7, continued later with credentials | `08a-stop-at-database.txt`, `08b-continue-with-database.txt` | Pass. Ctrl+C at "Database host". The next run skips straight to the database questions (the folder answer was kept) and finishes. |
 | 9 | Subfolder chosen at the folder question | `09-subfolder.txt` | Pass. `blog` creates the folder and suggests https://dest.test/blog. The database address is rewritten, the `.htaccess` rules are adjusted, and the home page and a page load under /blog/. |
+| 10 | Started inside a subfolder (`<domain>/public_html/new`), Enter pressed for every default | `12-started-in-subfolder.txt` | Pass. The tool suggests https://dest.test/new as the address. The database address and the `.htaccess` rules use /new, and the home page and a page load under /new/. Added after a real run kept the old address. |
 
 Extra runs for the layout decision: `10-layout-link.txt` (symlinks: 403,
 removed from the tool) and `11-layout-copy.txt` (copy: works, no symlinks).
 
-Unit tests: 54 pass on Python 3.13 and on Python 3.10.
+Unit tests: 56 pass on Python 3.13 and on Python 3.10.
 
 ## Bugs found and fixed during testing
 
@@ -40,9 +41,9 @@ WordPress block to match the new address's path, and a unit test covers it.
 
 ## Not tested
 
-- Downloading `reprint.phar` and the plugin from wordpress.org. That site is
-  blocked from the test machine, so a phar built from the v0.11.8 tag was passed
-  with `--reprint-phar`. The test sites installed the plugin from a local copy.
+- Downloading `reprint.phar` and the plugin from wordpress.org is blocked from
+  the test machine, so the tests pass a phar built from the v0.11.8 tag with
+  `--reprint-phar`. Both downloads did work in a real run on shared hosting.
 - Real CAPTCHA, two-factor, Cloudflare or other bot-check pages, and security
   plugins that rename wp-login.php. Only unit tests with sample pages cover
   these: the tool recognises them and switches to the manual steps.

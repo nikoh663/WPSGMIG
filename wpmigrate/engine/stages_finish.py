@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from wpmigrate.engine.destination import site_domain
 from wpmigrate.engine.context import Context
 from wpmigrate.engine.errors import MigrationError, SourceStepFailed
 from wpmigrate.engine.events import Status
@@ -30,13 +31,13 @@ def _manual_cleanup_steps(ctx: Context, reason: str) -> None:
 def stage_cleanup_source(ctx: Context) -> None:
     """Remove this server's access from the source and the plugin if we installed it."""
     state = ctx.st
-    what = "remove this server's access" + (" and the Reprint plugin" if state.get("plugin_installed_by_tool") else "")
+    what = "remove this server's access" + (" and the transfer plugin" if state.get("plugin_installed_by_tool") else "")
     try:
         agree = ctx.prompter.confirm(ConfirmQuestion("cleanup_source", f"The copy is finished. Tidy up the source site now ({what})?", default=True))
     except NoAnswerAvailable:
         agree = True
     if not agree:
-        ctx.info("The source site was left as it is. You can remove the Migration Token later under Tools → Reprint Server.")
+        ctx.note("The source site was left as it is. You can remove this server's access later under Tools → Reprint Server on the source site.")
         state.set("source_cleanup", "skipped")
         return
     site = source_site(ctx)
@@ -54,10 +55,10 @@ def stage_cleanup_source(ctx: Context) -> None:
         else:
             key_id = state.get("enrolled_key_id") or state.get("key_id")
             removed = site.remove_migration_token(key_id) if key_id else False
-            ctx.info("Removed this server's Migration Token from the source site." if removed else "This server's Migration Token was already gone from the source site.")
+            ctx.info("Removed this server's access from the source site." if removed else "This server's access was already gone from the source site.")
         if state.get("plugin_installed_by_tool") and state.get("reprint_plugin"):
             site.deactivate_and_delete(state.get("reprint_plugin"))
-            ctx.info("Deactivated and deleted the Reprint plugin on the source site (this tool had installed it).")
+            ctx.info("Removed the transfer plugin from the source site (this tool had installed it).")
         state.set("source_cleanup", "done")
         site.client.clear_cookies()
     except (SourceStepFailed, MigrationError, NoAnswerAvailable) as error:
@@ -74,7 +75,7 @@ def stage_summary(ctx: Context) -> None:
             ctx.p.cookie_file.unlink()
         if ctx.p.assemble.exists():
             LocalSystem.remove(ctx.p.assemble)
-        ctx.info("Deleted the downloaded database file and the source login cookies.")
+        ctx.info("Deleted the downloaded database file and the login cookies.")
         if state.get("source_cleanup") == "done":
             # Reprint's own saved state keeps the destination database password
             # in plain text. Once the source no longer trusts our key, nothing
@@ -84,7 +85,7 @@ def stage_summary(ctx: Context) -> None:
                 LocalSystem.move(audit, ctx.p.root / "reprint-audit.log")
             LocalSystem.remove(ctx.p.reprint_state)
             LocalSystem.remove(ctx.p.download)
-            ctx.info("Deleted Reprint's working files (they contained the database password); its log is kept as reprint-audit.log.")
+            ctx.info("Deleted the temporary working files.")
     folder = state.get("dest_folder")
     new_url = state.get("new_site_url")
     lines = [
@@ -93,8 +94,10 @@ def stage_summary(ctx: Context) -> None:
     ]
     if new_url.rstrip("/") == (state.get("source_home_url") or state.get("source_url")).rstrip("/"):
         lines.append("The domain still points to the old server. To make visitors see the copy, switch the domain's DNS (or its nameservers) to this hosting account. Until then you can preview it with your hosting panel's preview feature or a hosts-file entry.")
+    elif state.get("new_site_answers"):
+        lines.append(f"It is online now. Open it: {new_url}")
     else:
-        lines.append(f"Make sure the domain of {new_url} points to this hosting account.")
+        lines.append(f"It does not answer at {new_url} yet. Make sure the domain {site_domain(new_url)} points to this hosting account.")
     lines.append("Check: the home page, a few posts and pages, images, the admin login, contact forms, and any shop checkout.")
     lines.append("Careful: the copy is a live WordPress site. It may send e-mails (to customers too) and take real payments, and scheduled tasks will run. Switch off what must not run twice.")
     disabled = state.get("disabled_plugins") or []
@@ -107,11 +110,11 @@ def stage_summary(ctx: Context) -> None:
     if other and other.get("backup"):
         lines.append(f"Files that were in the folder before were moved to {other['backup']}.")
     if state.get("source_cleanup") in ("skipped", "manual"):
-        lines.append("The source site still has the Reprint plugin and this server's access. Remove them when you no longer need them.")
+        lines.append("The source site still has the transfer plugin (Reprint) and this server's access. Remove them when you no longer need them.")
     if ctx.p.reprint_state.exists():
-        lines.append(f"Reprint's working files in {ctx.p.reprint_state} include the new database password (readable only by your account). Delete that folder when you no longer need to copy the site again.")
+        lines.append(f"The working files in {ctx.p.reprint_state} include the new database password (readable only by your account). Delete that folder when you no longer need to copy the site again.")
     lines.append(f"Logs and saved progress for this copy are in {ctx.p.root}.")
-    ctx.emit(Status.DONE, "Done! Here is what to know:", action_required="\n".join(f"- {line}" for line in lines))
+    ctx.emit(Status.DONE, "All done. Your site has been copied.", action_required="\n".join(f"- {line}" for line in lines))
     own = state.get("tool_location")
     if own and folder and Path(own).exists() and str(Path(own).resolve()).startswith(str(Path(folder).resolve()) + "/"):
         try:

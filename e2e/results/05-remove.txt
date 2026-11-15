@@ -1,127 +1,145 @@
-wpmigrate 1.0.0 - copy a WordPress site to this server (10 steps).
-You can stop at any time with Ctrl+C and run the tool again later; it continues where it stopped.
 
-[1/10] Questions about the site
+  ╭────────────────────────────────────────╮
+  │  wpmigrate 1.1.0                       │
+  │  Copy a WordPress site to this server  │
+  ╰────────────────────────────────────────╯
+  10 steps. Stop any time with Ctrl+C; run it again and it continues where it
+  stopped.
 
-What is the address of the WordPress site you want to copy? (for example
-https://example.com)
-> https://src-a.test
+ 1/10  Site details
 
-Administrator username (or e-mail) on that site
-> admin
+  ? What is the address of the WordPress site you want to copy?
+    For example https://example.com
+  › https://src-a.test
 
-Password for the administrator account "admin" (it is not shown while you
-type)
-> 
+  ? Administrator username (or e-mail) on that site
+    The login you use at wp-admin.
+  › admin
 
-What address will the copied site use? Press Enter to keep the same address
-(you will switch the domain to this server later). [https://src-a.test]
-> https://dest.test
+  ? Password for the administrator account "admin"
+    It is not shown while you type.
+  › 
 
-[2/10] Checking this server
-  Using PHP 8.3.6 at /usr/bin/php.
-  Reprint client v0.11.8 is ready.
+  ? What address will the copied site use?
+    This folder looks like it is served at https://dest.test. To keep the old
+    address instead (and point the domain here later), type https://src-a.test
+    Press Enter for https://dest.test
+  › https://dest.test
 
-[3/10] Logging in to the source site
-  Logged in to the source site as an administrator.
+ 2/10  Checking this server
+  ✓ Using PHP 8.3.6 at /usr/bin/php.
+  ✓ The transfer engine is ready.
 
-[4/10] Reprint plugin on the source site
-  Installing the Reprint plugin on the source site...
-  Reprint plugin installed and activated on the source site.
+ 3/10  Logging in to the source site
+  ✓ Logged in to the source site as an administrator.
 
-[5/10] Authorizing this server on the source site
-  Authorized this server on the source site with a Migration Token.
+ 4/10  Preparing the source site
+  ✓ Transfer plugin installed and activated on the source site.
 
-[6/10] Downloading the site
-  Checking the source site (preflight)...
-  The source runs WordPress 7.1.4 on PHP 8.2.35.
-  Downloading the site's files. This can take a while; if the connection drops, run the tool again and it continues.
-    1.3% Downloading files: 116 of 3,839 files, 2.1 of 163.0 MB                  24.0% Downloading files: 1,100 of 3,839 files, 39.2 of 163.0 MB               52.5% Downloading files: 1,753 of 3,839 files, 85.6 of 163.0 MB               58.2% Downloading files: 2,463 of 3,839 files, 94.9 of 163.0 MB               89.3% Downloading files: 3,038 of 3,839 files, 145.6 of 163.0 MB             100.0% Downloading files: 3,839 of 3,839 files, 163.0 of 163.0 MB           
-  All files are downloaded.
-  Downloading the database into a file...
-  The database is downloaded (124.6 KB).
+ 5/10  Connecting this server to the source site
+  ✓ The source site now trusts this server.
 
-[7/10] Setting up the destination
+ 6/10  Downloading the site
+  ✓ The source runs WordPress 7.1.4 on PHP 8.2.35.
+  ✓ Downloading files  163 MB · 3,839 files · 8s
+  ✓ The database is downloaded (128.4 KB).
 
-Press Enter for this folder, type a subfolder name such as blog, or a full
-path.
-Install the site in this folder, or in another one (for example a subfolder)?
-[/home/wpuser/www/dest.test/public_html]
-> 
-  There is already a WordPress site in /home/wpuser/www/dest.test/public_html. Its address is https://dest.test.
+ 7/10  Setting up the destination
 
-What should happen to the site that is there now?
-  1. Remove it and replace it with the migrated site.
-  2. Keep it: move it to the subdomain old.dest.test and replace the main site
-     with the migrated one.
-  3. Cancel.
-Type a number [3]: 1
+  ? Install the site in this folder, or in another one (for example a
+    subfolder)?
+    Press Enter for this folder, type a subfolder name such as blog, or a full
+    path.
+    Press Enter for /home/wpuser/www/dest.test/public_html
+  › 
 
-This permanently deletes the site in /home/wpuser/www/dest.test/public_html.
-Type the domain dest.test to confirm
-> dest.test
+  There is already a WordPress site in /home/wpuser/www/dest.test/public_html.
+  Its address is (address unknown).
 
-Use the database of the site being removed (site_old on 172.30.0.12)? [Y/n] y
-  Now the database for the copied site. Create an empty database and a user for it in your hosting panel if you have not yet.
+  ? What should happen to the site that is there now?
+    1. Remove it and replace it with the migrated site.
+    2. Keep it: move it to the subdomain old.dest.test and replace the main
+       site with the migrated one.
+    3. Cancel.  (default)
+  › Type a number [3]: 1
 
-Database host [172.30.0.12]
-> 
+  ? This permanently deletes the site in
+    /home/wpuser/www/dest.test/public_html. Type the domain dest.test to
+    confirm
+  › dest.test
 
-Database name [site_old]
-> 
+  ? Use the database of the site being removed (site_old on 172.30.0.12)?
+  › [Y/n] y
 
-Database user [site_old]
-> 
+  Now the database for the copied site. If you have not yet, create an empty
+  database and a user for it in your hosting panel.
+
+  ? Database host
+    Press Enter for 172.30.0.12
+  › 
+
+  ? Database name
+    Press Enter for site_old
+  › 
+
+  ? Database user
+    Press Enter for site_old
+  › 
   ! The database site_old already has 12 table(s) starting with wp_
     (wp_commentmeta, wp_comments, wp_links, wp_options, wp_postmeta, wp_posts
     ...). They will be replaced by the copied site's tables.
 
-Import the copied site into the database site_old, replacing any tables that
-start with wp_? [y/N] y
-  The folder /home/wpuser/www/dest.test/public_html also contains files that are not part of a WordPress site:
+  ? Import the copied site into the database site_old, replacing any tables
+    that start with wp_?
+  › [y/N] y
+
+  The folder /home/wpuser/www/dest.test/public_html also contains files that
+  are not part of a WordPress site:
     google1234.html
 
-What should happen to them?
-  1. Move them to a dated backup folder in
-     /home/wpuser/.wpmigrate/sites/src-a.test/backups.
-  2. Remove them.
-Type a number [1]: 2
+  ? What should happen to them?
+    1. Move them to a dated backup folder in  (default)
+       /home/wpuser/.wpmigrate/sites/src-a.test/backups.
+    2. Remove them.
+  › Type a number [1]: 2
 
-[8/10] Installing the copied site
-  Removed 1 other item(s) from /home/wpuser/www/dest.test/public_html.
-  Removed the previous site from /home/wpuser/www/dest.test/public_html.
-  Importing the database and changing the address to https://dest.test...
-    0.0% Importing the database: 0 database statements, 0.0 of 0.1 MB           100.0% Importing the database: 41 database statements, 0.1 of 0.1 MB        
-  Put the site's files in /home/wpuser/www/dest.test/public_html.
-  Wrote wp-config.php with the new database details.
-  WordPress starts correctly in the new location.
+ 8/10  Installing the copied site
+  ✓ Removed 1 other item(s) from /home/wpuser/www/dest.test/public_html.
+  ✓ Removed the previous site from /home/wpuser/www/dest.test/public_html.
+  ✓ Importing the database  0.1 MB · 41 queries · 0s
+  ✓ Put the site's files in /home/wpuser/www/dest.test/public_html.
+  ✓ Wrote wp-config.php with the new database details.
+  ✓ WordPress starts correctly in the new location.
+  ✓ The copy is online at https://dest.test.
 
-[9/10] Tidying up the source site
+ 9/10  Tidying up the source site
 
-The copy is finished. Tidy up the source site now (remove this server's access
-and the Reprint plugin)? [Y/n] y
-  Removed this server's Migration Token from the source site.
-  Deactivated and deleted the Reprint plugin on the source site (this tool had installed it).
+  ? The copy is finished. Tidy up the source site now (remove this server's
+    access and the transfer plugin)?
+  › [Y/n] y
+  ✓ Removed this server's access from the source site.
+  ✓ Removed the transfer plugin from the source site (this tool had installed
+    it).
 
-[10/10] Summary
-  Deleted the downloaded database file and the source login cookies.
-  Deleted Reprint's working files (they contained the database password); its log is kept as reprint-audit.log.
+ 10/10  Summary
+  ✓ Deleted the downloaded database file and the login cookies.
+  ✓ Deleted the temporary working files.
 
-Done! Here is what to know:
-- The copied site is in /home/wpuser/www/dest.test/public_html and uses the
-  address https://dest.test.
-- Its database is site_old on 172.30.0.12.
-- Make sure the domain of https://dest.test points to this hosting account.
-- Check: the home page, a few posts and pages, images, the admin login,
-  contact forms, and any shop checkout.
-- Careful: the copy is a live WordPress site. It may send e-mails (to
-  customers too) and take real payments, and scheduled tasks will run. Switch
-  off what must not run twice.
-- Logs and saved progress for this copy are in
-  /home/wpuser/.wpmigrate/sites/src-a.test.
+  ✓ All done. Your site has been copied.  (33s)
+
+  • The copied site is in /home/wpuser/www/dest.test/public_html and uses the
+    address https://dest.test.
+  • Its database is site_old on 172.30.0.12.
+  • It is online now. Open it: https://dest.test
+  • Check: the home page, a few posts and pages, images, the admin login,
+    contact forms, and any shop checkout.
+  • Careful: the copy is a live WordPress site. It may send e-mails (to
+    customers too) and take real payments, and scheduled tasks will run.
+    Switch off what must not run twice.
+  • Logs and saved progress for this copy are in
+    /home/wpuser/.wpmigrate/sites/src-a.test.
 
 [drive] exit code: 0
 OK   https://dest.test/ -> HTTP 200, contains 'SRC-A-7731'
 OK   https://dest.test/sample-page/ -> HTTP 200, contains 'Sample Page'
 site_old	12
-google1234.html left in folder: 0

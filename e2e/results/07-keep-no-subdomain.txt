@@ -1,99 +1,110 @@
-wpmigrate 1.0.0 - copy a WordPress site to this server (10 steps).
-You can stop at any time with Ctrl+C and run the tool again later; it continues where it stopped.
 
-[1/10] Questions about the site
+  ╭────────────────────────────────────────╮
+  │  wpmigrate 1.1.0                       │
+  │  Copy a WordPress site to this server  │
+  ╰────────────────────────────────────────╯
+  10 steps. Stop any time with Ctrl+C; run it again and it continues where it
+  stopped.
 
-What is the address of the WordPress site you want to copy? (for example
-https://example.com)
-> https://src-a.test
+ 1/10  Site details
 
-Administrator username (or e-mail) on that site
-> admin
+  ? What is the address of the WordPress site you want to copy?
+    For example https://example.com
+  › https://src-a.test
 
-Password for the administrator account "admin" (it is not shown while you
-type)
-> 
+  ? Administrator username (or e-mail) on that site
+    The login you use at wp-admin.
+  › admin
 
-What address will the copied site use? Press Enter to keep the same address
-(you will switch the domain to this server later). [https://src-a.test]
-> https://dest.test
+  ? Password for the administrator account "admin"
+    It is not shown while you type.
+  › 
 
-[2/10] Checking this server
-  Using PHP 8.3.6 at /usr/bin/php.
-  Reprint client v0.11.8 is ready.
+  ? What address will the copied site use?
+    This folder looks like it is served at https://dest.test. To keep the old
+    address instead (and point the domain here later), type https://src-a.test
+    Press Enter for https://dest.test
+  › https://dest.test
 
-[3/10] Logging in to the source site
-  Logged in to the source site as an administrator.
+ 2/10  Checking this server
+  ✓ Using PHP 8.3.6 at /usr/bin/php.
+  ✓ The transfer engine is ready.
 
-[4/10] Reprint plugin on the source site
-  Installing the Reprint plugin on the source site...
-  Reprint plugin installed and activated on the source site.
+ 3/10  Logging in to the source site
+  ✓ Logged in to the source site as an administrator.
 
-[5/10] Authorizing this server on the source site
-  Authorized this server on the source site with a Migration Token.
+ 4/10  Preparing the source site
+  ✓ Transfer plugin installed and activated on the source site.
 
-[6/10] Downloading the site
-  Checking the source site (preflight)...
-  The source runs WordPress 7.1.4 on PHP 8.2.35.
-  Downloading the site's files. This can take a while; if the connection drops, run the tool again and it continues.
-    1.4% Downloading files: 122 of 3,839 files, 2.2 of 163.0 MB                  20.9% Downloading files: 1,100 of 3,839 files, 34.1 of 163.0 MB               52.2% Downloading files: 1,628 of 3,839 files, 85.2 of 163.0 MB               57.7% Downloading files: 2,445 of 3,839 files, 94.0 of 163.0 MB               79.4% Downloading files: 2,978 of 3,839 files, 129.4 of 163.0 MB             100.0% Downloading files: 3,839 of 3,839 files, 163.0 of 163.0 MB           
-  All files are downloaded.
-  Downloading the database into a file...
-  The database is downloaded (125.4 KB).
+ 5/10  Connecting this server to the source site
+  ✓ The source site now trusts this server.
 
-[7/10] Setting up the destination
+ 6/10  Downloading the site
+  ✓ The source runs WordPress 7.1.4 on PHP 8.2.35.
+  ✓ Downloading files  163 MB · 3,839 files · 10s
+  ✓ The database is downloaded (131.0 KB).
 
-Press Enter for this folder, type a subfolder name such as blog, or a full
-path.
-Install the site in this folder, or in another one (for example a subfolder)?
-[/home/wpuser/www/dest.test/public_html]
-> 
-  There is already a WordPress site in /home/wpuser/www/dest.test/public_html. Its address is https://dest.test.
+ 7/10  Setting up the destination
 
-What should happen to the site that is there now?
-  1. Remove it and replace it with the migrated site.
-  2. Keep it: move it to the subdomain old.dest.test and replace the main site
-     with the migrated one.
-  3. Cancel.
-Type a number [3]: 2
+  ? Install the site in this folder, or in another one (for example a
+    subfolder)?
+    Press Enter for this folder, type a subfolder name such as blog, or a full
+    path.
+    Press Enter for /home/wpuser/www/dest.test/public_html
+  › 
 
-The current site will be moved to /home/wpuser/www/old.dest.test/public_html
-so it opens at https://old.dest.test. Press Enter to use that folder, or type
-another full path [/home/wpuser/www/old.dest.test/public_html]
-> 
+  There is already a WordPress site in /home/wpuser/www/dest.test/public_html.
+  Its address is https://dest.test.
 
-==============================================================================
+  ? What should happen to the site that is there now?
+    1. Remove it and replace it with the migrated site.
+    2. Keep it: move it to the subdomain old.dest.test and replace the main
+       site with the migrated one.
+    3. Cancel.  (default)
+  › Type a number [3]: 2
+
+  ? The current site will be moved to
+    /home/wpuser/www/old.dest.test/public_html so it opens at
+    https://old.dest.test. Press Enter to use that folder, or type another
+    full path
+    Press Enter for /home/wpuser/www/old.dest.test/public_html
+  › 
+
+──────────────────────────────────────────────────────────────────────────────
 Before the old site can be moved, please create the subdomain old.dest.test in
 your hosting panel. This tool cannot create it for you.
+
 When it is created, the folder /home/wpuser/www/old.dest.test/public_html
    should appear. Press Enter when you have done this.
-==============================================================================
-Press Enter when the subdomain has been created. 
+──────────────────────────────────────────────────────────────────────────────
+
+  ? Press Enter when the subdomain has been created.
+  › 
   ! The folder /home/wpuser/www/old.dest.test/public_html does not exist yet.
 
-What would you like to do?
-  1. Check again (I have created the subdomain now).
-  2. Enter a different folder path.
-  3. Continue without the subdomain: create the folder anyway.
-  4. Cancel.
-Type a number [1]: 1
+  ? What would you like to do?
+    1. Check again (I have created the subdomain now).  (default)
+    2. Enter a different folder path.
+    3. Continue without the subdomain: create the folder anyway.
+    4. Cancel.
+  › Type a number [1]: 1
   ! The folder /home/wpuser/www/old.dest.test/public_html does not exist yet.
 
-What would you like to do?
-  1. Check again (I have created the subdomain now).
-  2. Enter a different folder path.
-  3. Continue without the subdomain: create the folder anyway.
-  4. Cancel.
-Type a number [1]: 4
+  ? What would you like to do?
+    1. Check again (I have created the subdomain now).  (default)
+    2. Enter a different folder path.
+    3. Continue without the subdomain: create the folder anyway.
+    4. Cancel.
+  › Type a number [1]: 4
 
-Problem: Stopped before moving anything.
-What to do: Create the subdomain old.dest.test in your hosting panel, then run
-  the tool again.
-  (A detailed log is in /home/wpuser/.wpmigrate/sites/src-a.test/wpmigrate.log.)
+  ✗ Stopped before moving anything.
+  → Create the subdomain old.dest.test in your hosting panel, then run the
+    tool again.
+    A detailed log is in
+    /home/wpuser/.wpmigrate/sites/src-a.test/wpmigrate.log
 
 [drive] exit code: 14
 --- after
-dest.test
 folders in www: dest.test
 old site still served at https://dest.test
 site_old	12

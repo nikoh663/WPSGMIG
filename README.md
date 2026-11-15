@@ -16,6 +16,8 @@ cd ~/www/example.com/public_html && curl -fsSLo ~/wpmigrate.pyz https://raw.gith
 It downloads the tool to your home folder (not the site folder), then starts it.
 If `curl` is missing, use `wget -qO ~/wpmigrate.pyz` with the same address.
 
+![wpmigrate downloading a site](docs/screenshot-progress.png)
+
 Then answer the questions. You can press Ctrl+C at any time, or lose the SSH
 connection, and run the same command again later: it continues where it stopped.
 
@@ -26,7 +28,9 @@ extensions (all common on hosting). It runs as your normal hosting user and does
 ## What it does
 
 1. Asks for the old site's address, the admin username and password, and the
-   address the copy will use (by default the same one).
+   address the copy will use. If you start it in a folder such as
+   `example.com/public_html/new`, it suggests `https://example.com/new`.
+   Otherwise it suggests the same address as the old site.
 2. Checks this server: Python, a suitable PHP, disk space, and Reprint. If no
    `reprint.phar` is given with `--reprint-phar`, it downloads the official one.
 3. Logs in to the old site's wp-admin like a browser would. It stops after 3

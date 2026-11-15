@@ -163,3 +163,22 @@ def set_rewrite_base(htaccess: str, url_path: str) -> str:
         return re.sub(r"(?m)^(\s*RewriteRule\s+\.\s+)\S*index\.php(\s+\[L\])", lambda m: m.group(1) + base + "index.php" + m.group(2), block)
 
     return _WP_BLOCK.sub(fix, htaccess)
+
+
+# Folder names that web servers commonly use as a site's web root.
+WEB_ROOT_NAMES = ("public_html", "htdocs", "httpdocs")
+_DOMAIN_NAME = re.compile(r"^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$", re.I)
+
+
+def address_for_folder(folder: Path) -> str | None:
+    """Guess the web address a folder is served at, from a <domain>/<web root>/... path.
+
+    ``/home/u/www/example.com/public_html/new`` gives ``https://example.com/new``.
+    Returns None when the path does not follow that layout.
+    """
+    parts = Path(os.path.normpath(folder)).parts
+    for index in range(len(parts) - 1, 0, -1):
+        if parts[index] in WEB_ROOT_NAMES and _DOMAIN_NAME.match(parts[index - 1]):
+            below = "/".join(urllib.parse.quote(part) for part in parts[index + 1:])
+            return "https://" + parts[index - 1].lower() + ("/" + below if below else "")
+    return None

@@ -1,58 +1,64 @@
-wpmigrate 1.0.0 - copy a WordPress site to this server (10 steps).
-You can stop at any time with Ctrl+C and run the tool again later; it continues where it stopped.
 
-[1/10] Questions about the site
+  ╭────────────────────────────────────────╮
+  │  wpmigrate 1.1.0                       │
+  │  Copy a WordPress site to this server  │
+  ╰────────────────────────────────────────╯
+  10 steps. Stop any time with Ctrl+C; run it again and it continues where it
+  stopped.
 
-What is the address of the WordPress site you want to copy? (for example
-https://example.com)
-> src-a.test
+ 1/10  Site details
 
-Administrator username (or e-mail) on that site
-> admin
+  ? What is the address of the WordPress site you want to copy?
+    For example https://example.com
+  › src-a.test
 
-Password for the administrator account "admin" (it is not shown while you
-type)
-> 
+  ? Administrator username (or e-mail) on that site
+    The login you use at wp-admin.
+  › admin
 
-What address will the copied site use? Press Enter to keep the same address
-(you will switch the domain to this server later). [https://src-a.test]
-> https://dest.test
+  ? Password for the administrator account "admin"
+    It is not shown while you type.
+  › 
 
-[2/10] Checking this server
-  Using PHP 8.3.6 at /usr/bin/php.
-  Reprint client v0.11.8 is ready.
+  ? What address will the copied site use?
+    This folder looks like it is served at https://dest.test. To keep the old
+    address instead (and point the domain here later), type https://src-a.test
+    Press Enter for https://dest.test
+  › https://dest.test
 
-[3/10] Logging in to the source site
-  Logged in to the source site as an administrator.
+ 2/10  Checking this server
+  ✓ Using PHP 8.3.6 at /usr/bin/php.
+  ✓ The transfer engine is ready.
 
-[4/10] Reprint plugin on the source site
-  Installing the Reprint plugin on the source site...
-  Reprint plugin installed and activated on the source site.
+ 3/10  Logging in to the source site
+  ✓ Logged in to the source site as an administrator.
 
-[5/10] Authorizing this server on the source site
-  Authorized this server on the source site with a Migration Token.
+ 4/10  Preparing the source site
+  ✓ Transfer plugin installed and activated on the source site.
 
-[6/10] Downloading the site
-  Checking the source site (preflight)...
-  The source runs WordPress 7.1.4 on PHP 8.2.35.
-  Downloading the site's files. This can take a while; if the connection drops, run the tool again and it continues.
-    1.2% Downloading files: 101 of 3,839 files, 1.9 of 163.0 MB                  11.6% Downloading files: 945 of 3,839 files, 18.9 of 163.0 MB                 46.8% Downloading files: 1,100 of 3,839 files, 76.3 of 163.0 MB               52.9% Downloading files: 2,120 of 3,839 files, 86.2 of 163.0 MB               58.7% Downloading files: 2,470 of 3,839 files, 95.6 of 163.0 MB               85.0% Downloading files: 3,038 of 3,839 files, 138.6 of 163.0 MB             100.0% Downloading files: 3,839 of 3,839 files, 163.0 of 163.0 MB           
-  All files are downloaded.
-  Downloading the database into a file...
-  The database is downloaded (120.8 KB).
+ 5/10  Connecting this server to the source site
+  ✓ The source site now trusts this server.
 
-[7/10] Setting up the destination
+ 6/10  Downloading the site
+  ✓ The source runs WordPress 7.1.4 on PHP 8.2.35.
+  ✓ Downloading files  163 MB · 3,839 files · 10s
+  ✓ The database is downloaded (129.5 KB).
 
-Press Enter for this folder, type a subfolder name such as blog, or a full
-path.
-Install the site in this folder, or in another one (for example a subfolder)?
-[/home/wpuser/www/dest.test/public_html]
-> 
-  Now the database for the copied site. Create an empty database and a user for it in your hosting panel if you have not yet.
+ 7/10  Setting up the destination
 
-Database host [localhost]
-> ^C
-Stopped. Run the tool again to continue where it stopped.
+  ? Install the site in this folder, or in another one (for example a
+    subfolder)?
+    Press Enter for this folder, type a subfolder name such as blog, or a full
+    path.
+    Press Enter for /home/wpuser/www/dest.test/public_html
+  › 
+
+  Now the database for the copied site. If you have not yet, create an empty
+  database and a user for it in your hosting panel.
+
+  ? Database host
+    Press Enter for localhost
+  › ^C
+  ! Stopped. Run the tool again to continue where it stopped.
 
 [drive] exit code: 14
-exit 0

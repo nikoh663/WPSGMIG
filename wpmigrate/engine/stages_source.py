@@ -15,6 +15,7 @@ from wpmigrate.engine.events import Status
 from wpmigrate.engine.http import HttpClient
 from wpmigrate.engine.prompts import ConfirmQuestion, NoAnswerAvailable, SecretQuestion, TextQuestion
 from wpmigrate.engine.reprint import ReprintRunner
+from wpmigrate.engine.destination import address_for_folder
 from wpmigrate.engine.source import SourceSite, WrongPassword, normalize_site_url, reprint_api_url
 from wpmigrate.engine.state import RunLock, SitePaths, StateStore, site_slug
 from wpmigrate.engine.system import LocalSystem
@@ -65,7 +66,7 @@ def admin_password(ctx: Context) -> str:
     """The source admin password, asked for when needed and kept in memory."""
     if not ctx.secrets.admin_password:
         ctx.secrets.admin_password = ctx.prompter.ask_secret(
-            SecretQuestion("admin_password", f"Password for the administrator account \"{ctx.st.get('admin_user')}\" (it is not shown while you type)")
+            SecretQuestion("admin_password", f"Password for the administrator account \"{ctx.st.get('admin_user')}\"")
         )
         ctx.redactor.add(ctx.secrets.admin_password)
     return ctx.secrets.admin_password
@@ -127,7 +128,7 @@ def stage_collect(ctx: Context) -> None:
             if resume:
                 source_url = previous
     if not source_url:
-        source_url = ctx.prompter.ask_text(TextQuestion("source_url", "What is the address of the WordPress site you want to copy? (for example https://example.com)"))
+        source_url = ctx.prompter.ask_text(TextQuestion("source_url", "What is the address of the WordPress site you want to copy?", help="For example https://example.com"))
     source_url = normalize_site_url(source_url)
     open_site_state(ctx, source_url)
     state = ctx.st
@@ -136,20 +137,31 @@ def stage_collect(ctx: Context) -> None:
         if ctx.options.admin_user and ctx.options.admin_user != state.get("admin_user"):
             state.set("admin_user", ctx.options.admin_user)
         return
-    admin_user = ctx.options.admin_user or ctx.prompter.ask_text(TextQuestion("admin_user", "Administrator username (or e-mail) on that site"))
+    admin_user = ctx.options.admin_user or ctx.prompter.ask_text(TextQuestion("admin_user", "Administrator username (or e-mail) on that site", help="The login you use at wp-admin."))
     admin_user = admin_user.strip()
     if not admin_user:
         raise MigrationError("No administrator username was entered.", "Run the tool again and enter the username you use to log in to wp-admin.")
     state.update({"source_url": source_url, "admin_user": admin_user, "start_dir": str(ctx.options.start_dir)})
     if not ctx.options.manual_source_steps:
         admin_password(ctx)
-    new_site_url = ctx.options.new_site_url or ctx.prompter.ask_text(
-        TextQuestion(
+    # A folder such as <domain>/public_html/new is served at https://<domain>/new,
+    # so that is the address to suggest; otherwise keep the source's address.
+    guessed = address_for_folder(Path(ctx.options.start_dir))
+    if guessed and guessed.rstrip("/") != source_url.rstrip("/"):
+        question = TextQuestion(
             "new_site_url",
-            "What address will the copied site use? Press Enter to keep the same address (you will switch the domain to this server later).",
-            default=source_url,
+            "What address will the copied site use?",
+            default=guessed,
+            help=f"This folder looks like it is served at {guessed}. To keep the old address instead (and point the domain here later), type {source_url}",
         )
-    )
+    else:
+        question = TextQuestion(
+            "new_site_url",
+            "What address will the copied site use?",
+            default=source_url,
+            help="Press Enter to keep the same address (you will point the domain to this server later).",
+        )
+    new_site_url = ctx.options.new_site_url or ctx.prompter.ask_text(question)
     new_site_url = normalize_site_url(new_site_url)
     if new_site_url.startswith("http:") and not ctx.options.allow_http:
         raise MigrationError(f"The new address {new_site_url} does not use HTTPS.", "Use an https:// address, or run the tool with --allow-http if the new site really has no HTTPS.")
@@ -173,7 +185,7 @@ def stage_requirements(ctx: Context) -> None:
         missing = newest.missing_extensions()
         if newest.version[:2] < constants.PHP_MINIMUM:
             raise RequirementsFailed(
-                f"The newest command-line PHP found is {newest.version_text} ({newest.path}); Reprint needs PHP 7.4 or newer.",
+                f"The newest command-line PHP found is {newest.version_text} ({newest.path}); the tool needs PHP 7.4 or newer.",
                 "Ask your host how to use a newer PHP in SSH, or pass its path with --php.",
             )
         raise RequirementsFailed(
@@ -183,7 +195,7 @@ def stage_requirements(ctx: Context) -> None:
     chosen = choice.chosen
     ctx.info(f"Using PHP {chosen.version_text} at {chosen.path}.")
     if choice.below_preferred:
-        ctx.warn(f"PHP {chosen.version_text} works, but Reprint runs best on PHP 8.2 or newer. If your host offers a newer PHP for SSH, pass it with --php.")
+        ctx.warn(f"PHP {chosen.version_text} works, but transfers run best on PHP 8.2 or newer. If your host offers a newer PHP for SSH, pass it with --php.")
     free = LocalSystem.disk_free(ctx.p.root)
     if free < constants.MIN_FREE_BYTES:
         raise RequirementsFailed(
@@ -197,19 +209,19 @@ def stage_requirements(ctx: Context) -> None:
     if not phar.exists():
         if ctx.options.reprint_phar:
             raise RequirementsFailed(f"{phar} does not exist.", "Check the path given with --reprint-phar.")
-        ctx.info("Downloading the Reprint client from WordPress.org...")
+        ctx.info("Getting the transfer engine ready...")
         try:
             download(constants.REPRINT_PHAR_URL, phar, user_agent=ctx.options.user_agent)
         except OSError as error:
             raise RequirementsFailed(
-                f"Downloading the Reprint client failed ({error}).",
+                f"Downloading the transfer engine failed ({error}).",
                 f"Check this server's internet access, or download {constants.REPRINT_PHAR_URL} yourself and run the tool with --reprint-phar=PATH.",
             ) from error
     version = ctx.system.run([chosen.path, str(phar), "--version"], timeout=60)
     if version.returncode != 0 or not version.stdout.strip():
-        raise RequirementsFailed(f"The Reprint client at {phar} does not run with PHP {chosen.version_text}.", "Delete that file so the tool downloads it again, or try another PHP with --php.")
+        raise RequirementsFailed(f"The transfer engine at {phar} does not run with PHP {chosen.version_text}.", "Delete that file so the tool downloads it again, or try another PHP with --php.")
     reprint_version = version.stdout.strip().splitlines()[-1]
-    ctx.info(f"Reprint client {reprint_version} is ready.")
+    ctx.info("The transfer engine is ready.", engine_version=reprint_version)
     ctx.st.update({
         "php_path": chosen.path,
         "php_version": chosen.version_text,
@@ -262,18 +274,18 @@ def stage_plugin(ctx: Context) -> None:
     site = source_site(ctx)
     found = site.find_reprint_plugin()
     if found and found.status in ("active", "network-active"):
-        ctx.info("The Reprint plugin is already active on the source site.")
+        ctx.info("The transfer plugin is already active on the source site.")
         ctx.st.update({"reprint_plugin": found.plugin, "plugin_installed_by_tool": bool(ctx.st.get("plugin_installed_by_tool", False))})
         return
     if found:
-        ctx.info("Activating the Reprint plugin on the source site...")
+        ctx.info("Activating the transfer plugin on the source site...")
         site.activate(found)
         ctx.st.update({"reprint_plugin": found.plugin, "plugin_installed_by_tool": bool(ctx.st.get("plugin_installed_by_tool", False))})
         return
-    ctx.info("Installing the Reprint plugin on the source site...")
+    ctx.info("Installing the transfer plugin on the source site...")
     installed = site.install_and_activate()
     ctx.st.update({"reprint_plugin": installed.plugin, "plugin_installed_by_tool": True})
-    ctx.info("Reprint plugin installed and activated on the source site.")
+    ctx.info("Transfer plugin installed and activated on the source site.")
 
 
 def ensure_key(ctx: Context, runner: ReprintRunner) -> tuple[str, str]:
@@ -290,7 +302,7 @@ def ensure_key(ctx: Context, runner: ReprintRunner) -> tuple[str, str]:
         )
     result = runner.run(runner.base_args("keygen", fs_root=False), stage=ctx.current_stage)
     if result.exit_code != 0 or not result.report or not result.report.get("public_key"):
-        raise MigrationError(f"Reprint could not create a key ({result.error}).", f"See {ctx.p.log_file} for details and run the tool again.")
+        raise MigrationError(f"The transfer engine could not create a key ({result.error}).", f"See {ctx.p.log_file} for details and run the tool again.")
     key_id = str(result.report.get("key_id"))
     ctx.st.set("key_id", key_id)
     return key_id, str(result.report["public_key"])
@@ -308,7 +320,7 @@ def stage_authorize(ctx: Context) -> None:
         key_id, public_key = ensure_key(ctx, runner)
         enrolled = site.enroll_migration_token(public_key)
         ctx.st.update({"key_id": key_id, "enrolled_key_id": enrolled or key_id, "authorized": True, "auth_scheme": "key"})
-        ctx.info("Authorized this server on the source site with a Migration Token.")
+        ctx.info("The source site now trusts this server.")
         return
     if page.connection_token_form is not None:
         ctx.info("The source server has no OpenSSL, so it uses a shared connection token instead of a Migration Token.")

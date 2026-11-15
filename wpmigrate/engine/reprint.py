@@ -202,7 +202,17 @@ class ReprintRunner:
                     last_emit[1] = percent if percent is not None else last_emit[1]
                     text = describe_progress(record)
                     label = progress_label or str(record.get("message") or "Working")
-                    self.emit(Event(stage, Status.PROGRESS, f"{label}: {text}" if text else label, percent=percent))
+                    items = progress.get("items") or {}
+                    details = {
+                        "label": label,
+                        "bytes_done": byte_counts.get("done"),
+                        "bytes_total": byte_counts.get("total"),
+                        "items_done": items.get("done"),
+                        "items_total": items.get("total"),
+                        "unit": items.get("unit"),
+                        "current": (progress.get("current_table") or {}).get("name"),
+                    }
+                    self.emit(Event(stage, Status.PROGRESS, f"{label}: {text}" if text else label, percent=percent, details=details))
 
         def on_stdout(line: str) -> None:
             record = parse_jsonl_line(line)

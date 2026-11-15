@@ -18,11 +18,11 @@ from wpmigrate.engine.state import RunLock
 Stage = Callable[[Context], None]
 
 STAGES: list[tuple[str, str, Stage]] = [
-    ("collect", "Questions about the site", stage_collect),
+    ("collect", "Site details", stage_collect),
     ("requirements", "Checking this server", stage_requirements),
     ("login", "Logging in to the source site", stage_login),
-    ("plugin", "Reprint plugin on the source site", stage_plugin),
-    ("authorize", "Authorizing this server on the source site", stage_authorize),
+    ("plugin", "Preparing the source site", stage_plugin),
+    ("authorize", "Connecting this server to the source site", stage_authorize),
     ("download", "Downloading the site", stage_download),
     ("destination", "Setting up the destination", stage_destination),
     ("deploy", "Installing the copied site", stage_deploy),

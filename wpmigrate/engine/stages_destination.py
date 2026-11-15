@@ -37,7 +37,7 @@ def wp_cli(ctx: Context) -> WpCli:
 
 def db_password(ctx: Context) -> str:
     if ctx.secrets.db_password is None:
-        ctx.secrets.db_password = ctx.prompter.ask_secret(SecretQuestion("db_password", "Database password (it is not shown while you type)"))
+        ctx.secrets.db_password = ctx.prompter.ask_secret(SecretQuestion("db_password", "Database password"))
         ctx.redactor.add(ctx.secrets.db_password)
     return ctx.secrets.db_password
 
@@ -80,16 +80,19 @@ def choose_folder(ctx: Context) -> Path:
             continue
         break
     state.set("dest_folder", str(folder))
-    # Installing below the folder the tool started in means a sub-address.
+    # The address should match where the folder is served. Ask when the folder
+    # picked here points somewhere else than the address chosen in step 1.
     new_url = state.get("new_site_url")
-    if folder != start and dest.is_inside(folder, start):
+    suggested = dest.address_for_folder(folder)
+    if suggested is None and folder != start and dest.is_inside(folder, start):
         relative = folder.relative_to(start).as_posix()
-        suggested = new_url.rstrip("/") + "/" + relative
         if not new_url.rstrip("/").endswith("/" + relative):
-            use = ctx.prompter.confirm(ConfirmQuestion("use_subfolder_address", f"In that folder the site will be at {suggested}. Use that address for the copy?", default=True))
-            if use:
-                state.set("new_site_url", suggested)
-                ctx.info(f"The copied site will use the address {suggested}.")
+            suggested = new_url.rstrip("/") + "/" + relative
+    if suggested and suggested.rstrip("/") != new_url.rstrip("/") and (folder != start or state.get("new_site_url") == state.get("source_url")):
+        use = ctx.prompter.confirm(ConfirmQuestion("use_subfolder_address", f"In that folder the site will be at {suggested}, not {new_url}. Use that address for the copy?", default=True))
+        if use:
+            state.set("new_site_url", suggested)
+            ctx.info(f"The copied site will use the address {suggested}.")
     return folder
 
 
@@ -121,7 +124,7 @@ def decide_existing_site(ctx: Context, folder: Path) -> None:
     config_text = (folder / "wp-config.php").read_text(encoding="utf-8", errors="replace") if (folder / "wp-config.php").exists() else ""
     database = wpconfig.read_database_settings(config_text) if config_text else None
     domain = dest.site_domain(state.get("new_site_url"))
-    ctx.info(f"There is already a WordPress site in {folder}. Its address is {address}.")
+    ctx.note(f"There is already a WordPress site in {folder}. Its address is {address}.")
     action = ctx.prompter.ask_choice(
         ChoiceQuestion(
             "existing_site",
@@ -306,7 +309,7 @@ def choose_database(ctx: Context) -> None:
             if values:
                 ctx.secrets.db_password = values.password
                 ctx.redactor.add(values.password)
-    ctx.info("Now the database for the copied site. Create an empty database and a user for it in your hosting panel if you have not yet.")
+    ctx.note("Now the database for the copied site. If you have not yet, create an empty database and a user for it in your hosting panel.")
     while True:
         host = ctx.prompter.ask_text(TextQuestion("db_host", "Database host", default=defaults["host"] or "localhost")).strip()
         name = ctx.prompter.ask_text(TextQuestion("db_name", "Database name", default=defaults["name"] or None)).strip()
@@ -353,7 +356,7 @@ def decide_other_files(ctx: Context, folder: Path) -> None:
         state.update({"other_files_action": "none", "other_files": []})
         return
     listing = "\n".join(f"  {name}" for name in other[:40]) + ("\n  ..." if len(other) > 40 else "")
-    ctx.info(f"The folder {folder} also contains files that are not part of a WordPress site:\n{listing}")
+    ctx.note(f"The folder {folder} also contains files that are not part of a WordPress site:\n{listing}")
     action = ctx.prompter.ask_choice(
         ChoiceQuestion(
             "other_files",
@@ -536,8 +539,7 @@ def _destination_php_version(ctx: Context, folder: Path) -> tuple[str | None, st
             break
     state = ctx.st
     new_url = state.get("new_site_url")
-    source_host = urllib.parse.urlsplit(state.get("source_url")).hostname
-    if urllib.parse.urlsplit(new_url).hostname != source_host:
+    if new_url.rstrip("/") != (state.get("source_url") or "").rstrip("/"):
         client = HttpClient(cookie_file=None, user_agent=ctx.options.user_agent, allow_http=ctx.options.allow_http, admin_delay=0, max_attempts=1, log=ctx.log, timeout=20)
         try:
             response = client.get(new_url + "/")
@@ -590,7 +592,7 @@ def stage_deploy(ctx: Context) -> None:
         webhost = summary.get("webhost") or "other"
         state.set("source_webhost", webhost)
         if webhost != "other":
-            ctx.warn(f"The source site was hosted on a platform Reprint recognises ({webhost}). Its platform-only plugins were removed from the copy; check the site carefully.")
+            ctx.warn(f"The source site was hosted on a managed platform ({webhost}). Its platform-only plugins were removed from the copy; check the site carefully.")
         for generated in ("runtime.php", "start.sh"):
             if (ctx.p.runtime / generated).exists():
                 (ctx.p.runtime / generated).unlink()
@@ -611,6 +613,19 @@ def stage_deploy(ctx: Context) -> None:
         )
     state.set("disabled_plugins", disabled)
     ctx.info("WordPress starts correctly in the new location.")
+    new_url = state.get("new_site_url")
+    if new_url.rstrip("/") != (state.get("source_home_url") or state.get("source_url") or "").rstrip("/"):
+        # A different address than the source's: it can be opened right away.
+        ctx.info(f"Opening {new_url} to check it...")
+        answered, detail = check_address(ctx, new_url)
+        good = answered and detail[5:6] in ("2", "3")
+        state.update({"new_site_answers": good, "new_site_answer_detail": detail})
+        if good:
+            ctx.info(f"The copy is online at {new_url}.")
+        elif answered:
+            ctx.warn(f"{new_url} answered with an error ({detail}). Open it in a browser; if it stays broken, check the site's PHP version and the error log in your hosting panel.")
+        else:
+            ctx.warn(f"{new_url} does not answer yet ({detail}). That is normal until its domain points to this hosting account.")
     source_php = state.get("source_php_version")
     destination_php, how = _destination_php_version(ctx, folder)
     state.update({"destination_php_version": destination_php, "destination_php_source": how})

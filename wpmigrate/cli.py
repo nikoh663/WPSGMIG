@@ -7,14 +7,11 @@ import getpass
 import os
 import signal
 import sys
-import textwrap
-import time
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any
 
 from wpmigrate import __version__, constants
 from wpmigrate.engine.context import Context, Options, Secrets
-from wpmigrate.engine.events import Event, Status
 from wpmigrate.engine.prompts import (
     ChoiceQuestion,
     ConfirmQuestion,
@@ -27,117 +24,49 @@ from wpmigrate.engine.prompts import (
 from wpmigrate.engine.runner import STAGES, Engine
 from wpmigrate.engine.system import LocalSystem
 from wpmigrate.redact import Redactor
-
-WIDTH = 78
-
-
-class Terminal:
-    """Output that survives a dropped SSH session (writes then go nowhere)."""
-
-    def __init__(self, stream: TextIO) -> None:
-        self.stream = stream
-        self.detached = False
-        self.is_tty = stream.isatty()
-        self._progress_shown = False
-
-    def write(self, text: str) -> None:
-        if self.detached:
-            return
-        try:
-            if self._progress_shown:
-                self.stream.write("\n")
-                self._progress_shown = False
-            self.stream.write(text + "\n")
-            self.stream.flush()
-        except (OSError, ValueError):
-            self.detached = True
-
-    def progress(self, text: str) -> None:
-        if self.detached:
-            return
-        try:
-            if self.is_tty:
-                self.stream.write("\r  " + text[: WIDTH - 2].ljust(WIDTH - 2))
-                self._progress_shown = True
-            else:
-                self.stream.write("  " + text + "\n")
-            self.stream.flush()
-        except (OSError, ValueError):
-            self.detached = True
-
-
-class Renderer:
-    """Turns engine events into readable lines."""
-
-    def __init__(self, terminal: Terminal, *, verbose: bool = False) -> None:
-        self.t = terminal
-        self.verbose = verbose
-        self._last_progress = 0.0
-
-    def emit(self, event: Event) -> None:
-        status = event.status
-        if status == Status.STARTED:
-            number = event.details.get("number")
-            total = event.details.get("total")
-            self.t.write("")
-            self.t.write(f"[{number}/{total}] {event.message}" if number else event.message)
-        elif status == Status.DONE and event.action_required:
-            self.t.write("")
-            self.t.write(event.message)
-            for line in event.action_required.splitlines():
-                self.t.write(textwrap.fill(line, WIDTH, subsequent_indent="  "))
-        elif status == Status.DONE:
-            pass
-        elif status == Status.PROGRESS:
-            now = time.monotonic()
-            if self.t.is_tty or now - self._last_progress >= 15 or (event.percent or 0) >= 100:
-                self._last_progress = now
-                percent = f"{event.percent:5.1f}% " if event.percent is not None else ""
-                self.t.progress(percent + event.message)
-        elif status == Status.INFO:
-            for line in event.message.splitlines():
-                self.t.write("  " + line)
-        elif status == Status.WARNING:
-            self.t.write(textwrap.fill("! " + event.message, WIDTH, initial_indent="  ", subsequent_indent="    "))
-        elif status == Status.ACTION_REQUIRED:
-            self.t.write("")
-            self.t.write("=" * WIDTH)
-            self.t.write(textwrap.fill(event.message, WIDTH))
-            if event.action_required:
-                for line in event.action_required.splitlines():
-                    self.t.write(textwrap.fill(line, WIDTH, subsequent_indent="   "))
-            token = event.details.get("display_token")
-            if token:
-                self.t.write("")
-                self.t.write("Migration Token (copy all of it):")
-                self.t.write("")
-                self.t.write(str(token))
-            self.t.write("=" * WIDTH)
-        elif status == Status.FAILED:
-            self.t.write("")
-            self.t.write(textwrap.fill("Problem: " + event.message, WIDTH, subsequent_indent="  "))
-            if event.action_required:
-                self.t.write(textwrap.fill("What to do: " + event.action_required, WIDTH, subsequent_indent="  "))
+from wpmigrate.ui import Renderer, Terminal
 
 
 class TerminalPrompter:
     """Asks in the terminal, unless an option already gave the answer."""
 
-    def __init__(self, terminal: Terminal, presets: dict[str, Any], *, interactive: bool) -> None:
+    def __init__(self, terminal: Terminal, presets: dict[str, Any], *, interactive: bool, renderer: Renderer | None = None) -> None:
         self.t = terminal
         self.presets = presets
         self.interactive = interactive
+        self.renderer = renderer
 
     def _preset(self, key: str) -> Any:
         return self.presets.get(key)
 
-    def _input(self, prompt: str) -> str:
+    def _quiet(self) -> None:
+        """Stop any spinner or bar before asking."""
+        if self.renderer is not None:
+            self.renderer.end_live()
+
+    def _question(self, text: str, help_text: str | None = None, *, tail: str = "") -> None:
+        """Print the question: a marker, the text in bold, then a dim hint."""
+        t = self.t
+        self._quiet()
+        t.write("")
+        lines = t.wrap(text + tail, first="    ", rest="    ")
+        t.write("  " + t.style(t.symbols["ask"], "cyan", "bold") + " " + t.style(lines[0][4:], "bold"))
+        for line in lines[1:]:
+            t.write(t.style(line, "bold"))
+        if help_text:
+            for line in t.wrap(help_text, first="    ", rest="    "):
+                t.write(t.style(line, "dim"))
+
+    def _arrow(self) -> str:
+        return "  " + self.t.style(self.t.symbols["prompt"], "cyan", "bold") + " "
+
+    def _input(self, prompt: str, *, what: str = "") -> str:
         if not self.interactive or self.t.detached:
-            raise NoAnswerAvailable(prompt.strip())
+            raise NoAnswerAvailable(what or prompt.strip())
         try:
             return input(prompt)
         except EOFError as error:
-            raise NoAnswerAvailable(prompt.strip()) from error
+            raise NoAnswerAvailable(what or prompt.strip()) from error
 
     def ask_text(self, question: TextQuestion) -> str:
         preset = self._preset(question.key)
@@ -145,11 +74,14 @@ class TerminalPrompter:
             return str(preset)
         if not self.interactive and question.default is not None:
             return question.default
-        self.t.write("")
-        if question.help:
-            self.t.write(textwrap.fill(question.help, WIDTH))
-        suffix = f" [{question.default}]" if question.default else ""
-        answer = self._input(textwrap.fill(question.text + suffix, WIDTH) + "\n> ").strip()
+        if not self.interactive or self.t.detached:
+            raise NoAnswerAvailable(question.text)
+        self._question(question.text, question.help or None)
+        if question.default:
+            t = self.t
+            for line in t.wrap(f"Press Enter for {question.default}", first="    ", rest="    "):
+                t.write(t.style(line[:20], "dim") + t.style(line[20:], "cyan") if line.startswith("    Press Enter for ") else t.style(line, "cyan"))
+        answer = self._input(self._arrow(), what=question.text).strip()
         return answer or (question.default or "")
 
     def ask_secret(self, question: SecretQuestion) -> str:
@@ -158,9 +90,9 @@ class TerminalPrompter:
             return str(preset)
         if not self.interactive or self.t.detached:
             raise NoAnswerAvailable(question.text)
-        self.t.write("")
+        self._question(question.text, None if "not shown" in question.text else "It is not shown while you type.")
         try:
-            return getpass.getpass(textwrap.fill(question.text, WIDTH) + "\n> ")
+            return getpass.getpass(self._arrow())
         except EOFError as error:
             raise NoAnswerAvailable(question.text) from error
 
@@ -173,49 +105,59 @@ class TerminalPrompter:
             raise NoAnswerAvailable(f"{question.key}={preset} is not one of {', '.join(values)}")
         if not self.interactive and question.default is not None and question.key not in ("existing_site",):
             return question.default
-        self.t.write("")
-        self.t.write(textwrap.fill(question.text, WIDTH))
-        for number, choice in enumerate(question.choices, start=1):
-            self.t.write(textwrap.fill(f"  {number}. {choice.label}", WIDTH, subsequent_indent="     "))
+        if not self.interactive or self.t.detached:
+            raise NoAnswerAvailable(question.text)
+        t = self.t
+        self._question(question.text)
         default_number = values.index(question.default) + 1 if question.default in values else None
+        for number, choice in enumerate(question.choices, start=1):
+            lines = t.wrap(choice.label, first="       ", rest="       ")
+            t.write("    " + t.style(f"{number}.", "cyan", "bold") + " " + lines[0][7:] + (t.style("  (default)", "dim") if number == default_number else ""))
+            for line in lines[1:]:
+                t.write(line)
         while True:
-            answer = self._input(f"Type a number{f' [{default_number}]' if default_number else ''}: ").strip()
+            hint = f"Type a number{f' [{default_number}]' if default_number else ''}: "
+            answer = self._input(self._arrow() + hint, what=question.text).strip()
             if not answer and default_number:
                 return values[default_number - 1]
             if answer.isdigit() and 1 <= int(answer) <= len(values):
                 return values[int(answer) - 1]
-            self.t.write(f"  Please type a number from 1 to {len(values)}.")
+            t.write(t.style(f"    Please type a number from 1 to {len(values)}.", "yellow"))
 
     def confirm(self, question: ConfirmQuestion) -> bool:
         preset = self._preset(question.key)
         if preset is not None:
             return bool(preset) if isinstance(preset, bool) else str(preset).lower() in ("1", "y", "yes", "true")
-        self.t.write("")
-        hint = "[Y/n]" if question.default else "[y/N]"
+        if not self.interactive or self.t.detached:
+            raise NoAnswerAvailable(question.text)
+        self._question(question.text)
+        hint = "[Y/n] " if question.default else "[y/N] "
         while True:
-            answer = self._input(textwrap.fill(f"{question.text} {hint}", WIDTH) + " ").strip().lower()
+            answer = self._input(self._arrow() + self.t.style(hint, "dim"), what=question.text).strip().lower()
             if not answer:
                 return question.default
             if answer in ("y", "yes"):
                 return True
             if answer in ("n", "no"):
                 return False
-            self.t.write("  Please answer y or n.")
+            self.t.write(self.t.style("    Please answer y or n.", "yellow"))
 
     def type_to_confirm(self, question: TypeToConfirmQuestion) -> bool:
         preset = self._preset(question.key)
         if preset is not None:
             return str(preset) == question.expected
-        self.t.write("")
-        answer = self._input(textwrap.fill(question.text, WIDTH) + "\n> ").strip()
+        self._question(question.text)
+        answer = self._input(self._arrow(), what=question.text).strip()
         return answer == question.expected
 
     def wait_for_person(self, question: WaitQuestion) -> None:
         if self._preset(question.key) is not None:
             return
+        self._quiet()
         for line in question.instructions:
             self.t.write("  " + line)
-        self._input(question.text + " ")
+        self._question(question.text)
+        self._input(self._arrow(), what=question.text)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -233,7 +175,7 @@ def build_parser() -> argparse.ArgumentParser:
     add("--version", action="version", version=f"wpmigrate {__version__}")
     add("--source", metavar="URL", help="address of the site to copy")
     add("--user", metavar="NAME", help="administrator username on the source site")
-    add("--new-url", metavar="URL", help="address of the copied site (default: the same address)")
+    add("--new-url", metavar="URL", help="address of the copied site (default: worked out from the folder, otherwise the same address)")
     add("--folder", metavar="PATH", help="folder to install the copied site in (default: the current folder)")
     add("--existing-site", choices=("remove", "keep", "cancel"), help="what to do with a WordPress site already in that folder")
     add("--confirm-domain", metavar="DOMAIN", help="confirms removing an existing site (must match its domain)")
@@ -247,8 +189,8 @@ def build_parser() -> argparse.ArgumentParser:
     add("--other-files", choices=("backup", "remove"), help="what to do with non-WordPress files in the folder")
     add("--cleanup-source", choices=("yes", "no"), help="remove the plugin and this server's access from the source at the end (default: yes)")
     add("--manual", action="store_true", help="do the source steps (plugin and authorization) yourself in the browser")
-    add("--php", metavar="PATH", help="PHP program to run Reprint with (default: the newest suitable one found)")
-    add("--reprint-phar", metavar="PATH", help="use this reprint.phar instead of downloading it")
+    add("--php", metavar="PATH", help="PHP program to use (default: the newest suitable one found)")
+    add("--reprint-phar", metavar="PATH", help="use this copy of the transfer engine (reprint.phar) instead of downloading it")
     add("--user-agent", metavar="TEXT", help="browser identification sent to the source site")
     add("--allow-http", action="store_true", help="allow a source or new address without HTTPS (insecure)")
     add("--keep-downloads", action="store_true", help="keep the downloaded database file and login cookies at the end")
@@ -325,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
     terminal = Terminal(sys.stdout)
     renderer = Renderer(terminal)
     interactive = not args.non_interactive and sys.stdin.isatty()
-    prompter = TerminalPrompter(terminal, presets_from(args), interactive=interactive)
+    prompter = TerminalPrompter(terminal, presets_from(args), interactive=interactive, renderer=renderer)
     redactor = Redactor()
     secrets = Secrets(os.environ.get("WPMIGRATE_ADMIN_PASSWORD") or None, os.environ.get("WPMIGRATE_DB_PASSWORD") or None)
     redactor.add(secrets.admin_password)
@@ -355,19 +297,21 @@ def main(argv: list[str] | None = None) -> int:
         ctx.log("terminal disconnected; continuing without questions")
 
     signal.signal(signal.SIGHUP, on_hangup)
-    terminal.write(f"wpmigrate {__version__} - copy a WordPress site to this server ({len(STAGES)} steps).")
-    terminal.write("You can stop at any time with Ctrl+C and run the tool again later; it continues where it stopped.")
+    renderer.banner(f"wpmigrate {__version__}", "Copy a WordPress site to this server")
+    renderer.hint(f"{len(STAGES)} steps. Stop any time with Ctrl+C; run it again and it continues where it stopped.")
     engine = Engine(ctx, tool_location=tool_location())
     try:
         code = engine.run()
     except KeyboardInterrupt:
+        renderer.end_live()
         system.stop_children()
         terminal.write("")
-        terminal.write("Stopped. Run the tool again to continue where it stopped.")
+        renderer.line("warn", "Stopped. Run the tool again to continue where it stopped.")
         ctx.log("stopped with Ctrl+C")
         return constants.ExitCode.CANCELLED
+    renderer.end_live()
     if ctx.paths is not None and code != 0:
-        terminal.write(f"  (A detailed log is in {ctx.paths.log_file}.)")
+        renderer.hint(f"  A detailed log is in {ctx.paths.log_file}")
     if terminal.detached:
         # The terminal is gone; make sure the final flush cannot fail.
         devnull = os.open(os.devnull, os.O_WRONLY)

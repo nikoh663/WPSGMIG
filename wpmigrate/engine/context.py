@@ -72,6 +72,10 @@ class Context:
     def info(self, message: str, **details: object) -> None:
         self.emit(Status.INFO, message, **details)
 
+    def note(self, message: str, **details: object) -> None:
+        """An explanation for the person (not something that was just done)."""
+        self.emit(Status.INFO, message, kind="note", **details)
+
     def warn(self, message: str, **details: object) -> None:
         self.emit(Status.WARNING, message, **details)
 
