@@ -244,6 +244,7 @@ def presets_from(args: argparse.Namespace) -> dict[str, Any]:
         presets["resume"] = args.resume == "yes"
     if args.non_interactive:
         presets.setdefault("create_dest_folder", True)
+        presets.setdefault("copy_again", True)
         presets.setdefault("use_subfolder_address", True)
         presets.setdefault("remove_tool_files", False)
     return presets

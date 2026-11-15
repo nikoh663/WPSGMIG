@@ -26,6 +26,7 @@ answers the way a person would. The full output of each run is in
 | 8 | Stopped at stage 7, continued later with credentials | `08a-stop-at-database.txt`, `08b-continue-with-database.txt` | Pass. Ctrl+C at "Database host". The next run skips straight to the database questions (the folder answer was kept) and finishes. |
 | 9 | Subfolder chosen at the folder question | `09-subfolder.txt` | Pass. `blog` creates the folder and suggests https://dest.test/blog. The database address is rewritten, the `.htaccess` rules are adjusted, and the home page and a page load under /blog/. |
 | 10 | Started inside a subfolder (`<domain>/public_html/new`), Enter pressed for every default | `12-started-in-subfolder.txt` | Pass. The tool suggests https://dest.test/new as the address. The database address and the `.htaccess` rules use /new, and the home page and a page load under /new/. Added after a real run kept the old address. |
+| 11 | Same site copied again into the same folder after a finished copy | `13-copy-again.txt` | Pass. The tool asks whether to copy again from the start, then treats the earlier copy as an existing site: remove needs the domain typed, and its database details are offered again. The site loads under /new/. |
 
 Extra runs for the layout decision: `10-layout-link.txt` (symlinks: 403,
 removed from the tool) and `11-layout-copy.txt` (copy: works, no symlinks).

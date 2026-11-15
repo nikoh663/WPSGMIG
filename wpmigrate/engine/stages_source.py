@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 import secrets as random_tokens
 import sys
+import time
 from pathlib import Path
 
 from wpmigrate import constants
 from wpmigrate.engine import php as php_module
 from wpmigrate.engine.context import Context
-from wpmigrate.engine.errors import AuthorizationNeeded, LoginFailed, MigrationError, RequirementsFailed, SourceStepFailed
+from wpmigrate.engine.errors import AuthorizationNeeded, Cancelled, LoginFailed, MigrationError, RequirementsFailed, SourceStepFailed
 from wpmigrate.engine.events import Status
 from wpmigrate.engine.http import HttpClient
 from wpmigrate.engine.prompts import ConfirmQuestion, NoAnswerAvailable, SecretQuestion, TextQuestion
@@ -86,6 +87,20 @@ def open_site_state(ctx: Context, source_url: str) -> None:
     ctx.log(f"--- run started in {ctx.options.start_dir} for {source_url}")
 
 
+def start_over(ctx: Context) -> StateStore:
+    """Forget a finished copy so the same site can be copied again."""
+    paths = ctx.p
+    if paths.state_file.exists():
+        paths.state_file.rename(paths.root / time.strftime("state-finished-%Y%m%d-%H%M%S.json"))
+    for leftover in (paths.reprint_state, paths.download, paths.assemble, paths.runtime, paths.cookie_file, paths.connection_token_file):
+        if leftover.exists():
+            LocalSystem.remove(leftover)
+    paths.create()
+    ctx.state = StateStore(paths)
+    ctx.log("--- starting over: the earlier copy had finished")
+    return ctx.state
+
+
 def remember_last_run(ctx: Context) -> None:
     """Record which site a run from this folder belongs to, for resuming."""
     pointer = private_root(ctx) / "runs.json"
@@ -132,6 +147,12 @@ def stage_collect(ctx: Context) -> None:
     source_url = normalize_site_url(source_url)
     open_site_state(ctx, source_url)
     state = ctx.st
+    if state.stage_done("summary"):
+        where = state.get("dest_folder") or "this server"
+        again = ctx.prompter.confirm(ConfirmQuestion("copy_again", f"{source_url} was already copied to {where}. Copy it again from the start?", default=True))
+        if not again:
+            raise Cancelled("Nothing was changed.", "Run the tool again when you want a fresh copy.")
+        state = start_over(ctx)
     if state.stage_done("collect") and state.get("source_url") == source_url:
         ctx.info(f"Continuing the copy of {source_url} from where it stopped.")
         if ctx.options.admin_user and ctx.options.admin_user != state.get("admin_user"):
