@@ -1,54 +1,48 @@
 
-  ╭────────────────────────────────────────╮
-  │  wpmigrate 1.1.0                       │
-  │  Copy a WordPress site to this server  │
-  ╰────────────────────────────────────────╯
-  10 steps. Stop any time with Ctrl+C; run it again and it continues where it
-  stopped.
+  ╭─────────────────────────────────────────────────╮
+  │  wpmigrate 1.2.0                                │
+  │  Let's move your WordPress site to this server  │
+  ╰─────────────────────────────────────────────────╯
+  Just answer a few questions and I'll do the rest. You can stop any time with
+  Ctrl+C; run me again and I pick up where I left off.
 
- 1/10  Site details
+ ◆ First, a few questions
 
-  ? What is the address of the WordPress site you want to copy?
-    For example https://example.com
+  ? Which site would you like to copy?
+    Type its address, for example https://example.com
   › https://src-a.test
 
-  ? Administrator username (or e-mail) on that site
-    The login you use at wp-admin.
+  ? What is your admin username (or e-mail) on that site?
+    The one you use to sign in at wp-admin.
   › admin
 
-  ? Password for the administrator account "admin"
+  ? And the password for "admin"?
     It is not shown while you type.
   › 
 
-  ? What address will the copied site use?
+  ? What address should the copy use?
     This folder looks like it is served at https://dest.test. To keep the old
     address instead (and point the domain here later), type https://src-a.test
     Press Enter for https://dest.test
   › https://dest.test
 
- 2/10  Checking this server
+ ◆ Getting connected
   ✓ Using PHP 8.3.6 at /usr/bin/php.
-  ✓ The transfer engine is ready.
+  ✓ Everything needed is in place.
+  ✓ Signed in to your original site.
+  ✓ Added a small helper plugin to your original site (it is removed again at
+    the end).
+  ✓ Your original site and this server are now connected.
 
- 3/10  Logging in to the source site
-  ✓ Logged in to the source site as an administrator.
+ ◆ Copying your site
+  ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
+  ⠧ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  52%  85 MB of 163 MB  · 20 MB/s
 
- 4/10  Preparing the source site
-  ✓ Transfer plugin installed and activated on the source site.
-
- 5/10  Connecting this server to the source site
-  ✓ The source site now trusts this server.
-
- 6/10  Downloading the site
-  ✓ The source runs WordPress 7.1.4 on PHP 8.2.35.
-  ⠋ Downloading files  ━━━━━━━━━━━━  51%  83 MB of 163 MB  · 20 MB/s  · 4s left
-
-[drive] on screen at this moment: Downloading files ━━━━━━━━━━━━ 51%
+[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 52%
 
 [drive] sending SIGHUP to the tool (simulating the SSH connection dropping (terminal closed))
 
 [drive] exit code: 1
 --- the tool's log after the hangup:
-2026-11-14 23:40:08 [download] info: All files are downloaded.
-2026-11-14 23:40:08 [download] info: The database is downloaded (128.0 KB).
-2026-11-14 23:40:08 [destination] failed: The tool needs an answer to continue (Install the site in this folder, or in another one (for example a subfolder)?), but nobody can be asked right now (the t
+2026-11-15 11:29:17 [download] info: All files are copied over.
+2026-11-15 11:29:17 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt

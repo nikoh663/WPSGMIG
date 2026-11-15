@@ -20,13 +20,13 @@ Stage = Callable[[Context], None]
 STAGES: list[tuple[str, str, Stage]] = [
     ("collect", "Site details", stage_collect),
     ("requirements", "Checking this server", stage_requirements),
-    ("login", "Logging in to the source site", stage_login),
-    ("plugin", "Preparing the source site", stage_plugin),
-    ("authorize", "Connecting this server to the source site", stage_authorize),
+    ("login", "Logging in to your original site", stage_login),
+    ("plugin", "Preparing your original site", stage_plugin),
+    ("authorize", "Connecting this server to your original site", stage_authorize),
     ("download", "Downloading the site", stage_download),
     ("destination", "Setting up the destination", stage_destination),
     ("deploy", "Installing the copied site", stage_deploy),
-    ("cleanup_source", "Tidying up the source site", stage_cleanup_source),
+    ("cleanup_source", "Tidying up your original site", stage_cleanup_source),
     ("summary", "Summary", stage_summary),
 ]
 SOURCE_STAGES = ("login", "plugin", "authorize")
@@ -89,7 +89,7 @@ class Engine:
                     if reauthorized or name != "download":
                         raise
                     reauthorized = True
-                    ctx.warn("The source site does not accept this server's key any more. Authorizing it again (the same key is used).")
+                    ctx.warn("Your original site does not accept this server's key any more. Authorizing it again (the same key is used).")
                     ctx.st.set("authorized", False)
                     for source_stage in SOURCE_STAGES:
                         ctx.st.reset_stage(source_stage)

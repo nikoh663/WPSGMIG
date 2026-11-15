@@ -1,6 +1,6 @@
 # Verification
 
-Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.1.0 (new interface and address detection). The
+Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.2.0 (new interface, friendlier wording and address detection). The
 tool ran as an unprivileged user (`wpuser`) inside a pseudo-terminal, typing
 answers the way a person would. The full output of each run is in
 `e2e/results/`, followed by independent checks made with curl, WP-CLI and SQL.

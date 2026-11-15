@@ -42,23 +42,23 @@ class PluginInfo:
 
 LOGIN_MESSAGES = {
     PageKind.CLOUDFLARE_CHALLENGE: (
-        "The source site is protected by a Cloudflare browser check, which this tool cannot and will not get around.",
+        "Your original site is protected by a Cloudflare browser check, which this tool cannot and will not get around.",
         "You can finish the source steps yourself in the browser; the instructions follow.",
     ),
     PageKind.BOT_CHALLENGE: (
-        "The source site shows a bot check ({detail}) before the login page, which this tool will not try to get around.",
+        "Your original site shows a bot check ({detail}) before the login page, which this tool will not try to get around.",
         "You can finish the source steps yourself in the browser; the instructions follow.",
     ),
     PageKind.IP_BLOCKED: (
-        "The source site refused this server ({detail}). Its firewall or security plugin may have blocked this server's address.",
+        "Your original site refused this server ({detail}). Its firewall or security plugin may have blocked this server's address.",
         "Ask the site's administrator or host to allow this server, or finish the source steps yourself in the browser.",
     ),
     PageKind.RATE_LIMITED: (
-        "The source site is limiting requests from this server right now.",
+        "Your original site is limiting requests from this server right now.",
         "Wait a few minutes and run the tool again, or finish the source steps yourself in the browser.",
     ),
     PageKind.CAPTCHA: (
-        "The login page of the source site asks for a CAPTCHA, which this tool will not try to solve.",
+        "The login page of your original site asks for a CAPTCHA, which this tool will not try to solve.",
         "You can finish the source steps yourself in the browser; the instructions follow.",
     ),
     PageKind.TWO_FACTOR: (
@@ -66,11 +66,11 @@ LOGIN_MESSAGES = {
         "You can finish the source steps yourself in the browser, where you can enter the code; the instructions follow.",
     ),
     PageKind.LOGIN_PAGE_MISSING: (
-        "The source site has no standard login page at {url} (a security plugin may have moved it).",
+        "Your original site has no standard login page at {url} (a security plugin may have moved it).",
         "You can finish the source steps yourself in the browser; the instructions follow.",
     ),
     PageKind.UNKNOWN: (
-        "Logging in to the source site did not work and the reason is unclear ({detail}).",
+        "Logging in to your original site did not work and the reason is unclear ({detail}).",
         "You can finish the source steps yourself in the browser; the instructions follow.",
     ),
 }
@@ -85,7 +85,7 @@ class NotAdministrator(SourceStepFailed):
 
 
 class SourceSite:
-    """Session with the source site's admin area."""
+    """Session with your original site's admin area."""
 
     def __init__(self, client: HttpClient, site_url: str, log: Callable[[str], None]) -> None:
         self.client = client
@@ -127,7 +127,7 @@ class SourceSite:
         """Load the home page like a visitor and note the REST API root."""
         response = self._check(self.client.get(self.site_url + "/"))
         if response.status >= 400:
-            raise SourceStepFailed(f"The source site answered HTTP {response.status} for its home page.", code="HOME_FAILED")
+            raise SourceStepFailed(f"Your original site answered HTTP {response.status} for its home page.", code="HOME_FAILED")
         link = response.header("link")
         match = re.search(r'<([^>]+)>;\s*rel="https://api\.w\.org/"', link)
         if not match:
@@ -158,7 +158,7 @@ class SourceSite:
         self.log(f"login result: {classification.kind}")
         if classification.kind == PageKind.WRONG_PASSWORD:
             raise WrongPassword(
-                "The source site did not accept that username and password.",
+                "Your original site did not accept that username and password.",
                 "Check them (the same ones you use at wp-admin) and try again.",
                 code="WRONG_PASSWORD",
             )
@@ -177,7 +177,7 @@ class SourceSite:
     def _admin_page(self, path: str) -> Response:
         response = self._check(self.client.get(self.admin_url + path, referer=self.admin_url))
         if "wp-login.php" in response.url:
-            raise SourceStepFailed("The login session on the source site ended.", code="SESSION_EXPIRED")
+            raise SourceStepFailed("The login session on your original site ended.", code="SESSION_EXPIRED")
         return response
 
     def load_rest_nonce(self) -> str:
@@ -219,7 +219,7 @@ class SourceSite:
                 capabilities = {}
             if capabilities and not capabilities.get("manage_options"):
                 raise NotAdministrator(
-                    "This account can log in to the source site but is not an administrator, so it cannot install plugins or change settings.",
+                    "This account can log in to your original site but is not an administrator, so it cannot install plugins or change settings.",
                     code="NOT_ADMIN",
                 )
             if capabilities:
@@ -227,7 +227,7 @@ class SourceSite:
         settings = self._admin_page("options-general.php")
         if settings.status == 403 or wpparse.is_not_allowed_page(settings.text):
             raise NotAdministrator(
-                "This account can log in to the source site but is not an administrator, so it cannot install plugins or change settings.",
+                "This account can log in to your original site but is not an administrator, so it cannot install plugins or change settings.",
                 code="NOT_ADMIN",
             )
 
@@ -274,7 +274,7 @@ class SourceSite:
         self.log(f"REST plugin install answered {response.status} {code}")
         if code in ("rest_cannot_install_plugin", "rest_forbidden") and self._file_mods_disallowed():
             raise SourceStepFailed(
-                "The source site does not allow installing plugins from wp-admin (plugin and theme installation is switched off in its configuration).",
+                "Your original site does not allow installing plugins from wp-admin (plugin and theme installation is switched off in its configuration).",
                 code="FILE_MODS_DISALLOWED",
             )
         # The request may have installed the plugin before failing (or the
@@ -291,21 +291,21 @@ class SourceSite:
     def _install_with_admin_screens(self) -> PluginInfo:
         search = self._admin_page("plugin-install.php?s=reprint&tab=search&type=term")
         if wpparse.is_not_allowed_page(search.text) or search.status == 403:
-            raise SourceStepFailed("The source site does not let this account install plugins.", code="CANNOT_INSTALL")
+            raise SourceStepFailed("Your original site does not let this account install plugins.", code="CANNOT_INSTALL")
         link = wpparse.find_link(search.text, r"update\.php\?action=install-plugin&plugin=reprint&_wpnonce=")
         if not link:
-            raise SourceStepFailed("Could not find the Install button for Reprint on the source site's Add Plugins screen.", code="NO_INSTALL_LINK")
+            raise SourceStepFailed("Could not find the Install button for Reprint on your original site's Add Plugins screen.", code="NO_INSTALL_LINK")
         result = self._check(self.client.get(urllib.parse.urljoin(search.url, link), referer=search.url))
         activate = wpparse.find_link(result.text, r"plugins\.php\?.*action=activate.*plugin=reprint%2F")
         if not activate:
             found = self._find_reprint_plugin_admin()
             if found is None:
-                raise SourceStepFailed("Installing Reprint through the source site's admin screens did not work: " + wpparse.strip_tags(result.text)[:300], code="INSTALL_FAILED")
+                raise SourceStepFailed("Installing Reprint through your original site's admin screens did not work: " + wpparse.strip_tags(result.text)[:300], code="INSTALL_FAILED")
             return self.activate(found)
         self._check(self.client.get(urllib.parse.urljoin(result.url, activate), referer=result.url))
         found = self._find_reprint_plugin_admin()
         if not found or found.status != "active":
-            raise SourceStepFailed("Reprint was installed on the source site but could not be activated.", code="ACTIVATE_FAILED")
+            raise SourceStepFailed("Reprint was installed on your original site but could not be activated.", code="ACTIVATE_FAILED")
         return found
 
     def activate(self, plugin: PluginInfo) -> PluginInfo:
@@ -315,7 +315,7 @@ class SourceSite:
         page = self._admin_page("plugins.php")
         link = wpparse.find_link(page.text, r"plugins\.php\?.*action=activate.*plugin=" + re.escape(urllib.parse.quote(plugin.plugin + ".php", safe="")))
         if not link:
-            raise SourceStepFailed("Reprint is installed on the source site but could not be activated.", code="ACTIVATE_FAILED")
+            raise SourceStepFailed("Reprint is installed on your original site but could not be activated.", code="ACTIVATE_FAILED")
         self._check(self.client.get(urllib.parse.urljoin(page.url, link), referer=page.url))
         return PluginInfo(plugin.plugin, "active")
 
@@ -332,11 +332,11 @@ class SourceSite:
         page = self._admin_page("plugins.php")
         link = wpparse.find_link(page.text, r"plugins\.php\?.*action=delete-selected.*" + re.escape(urllib.parse.quote(plugin + ".php", safe="")))
         if not link:
-            raise SourceStepFailed("Could not remove the Reprint plugin from the source site.", code="DELETE_FAILED")
+            raise SourceStepFailed("Could not remove the Reprint plugin from your original site.", code="DELETE_FAILED")
         confirm = self._check(self.client.get(urllib.parse.urljoin(page.url, link), referer=page.url))
         form = wpparse.find_form(confirm.text, with_value=("action", "delete-selected"))
         if form is None:
-            raise SourceStepFailed("Could not remove the Reprint plugin from the source site.", code="DELETE_FAILED")
+            raise SourceStepFailed("Could not remove the Reprint plugin from your original site.", code="DELETE_FAILED")
         fields = list(form.fields)
         if not form.has("verify-delete"):
             fields.append(("verify-delete", "1"))
@@ -366,7 +366,7 @@ class SourceSite:
         if notice in ("enrolled", "enroll_duplicate"):
             return (query.get("reprint_server_key_id") or [None])[0]
         raise SourceStepFailed(
-            "The source site did not accept the Migration Token"
+            "Your original site did not accept the Migration Token"
             + (f" (it answered: {notice.replace('_', ' ')})." if notice else ".")
             + (" " + wpparse.admin_notice_text(result.text) if wpparse.admin_notice_text(result.text) else ""),
             code="ENROLL_FAILED",
@@ -384,7 +384,7 @@ class SourceSite:
             self.client.post(urllib.parse.urljoin(response.url, form.action), form=fields, referer=response.url, retry=False)
         )
         if result.status >= 400 or wpparse.is_not_allowed_page(result.text):
-            raise SourceStepFailed("The source site did not save the connection token.", code="TOKEN_SAVE_FAILED")
+            raise SourceStepFailed("Your original site did not save the connection token.", code="TOKEN_SAVE_FAILED")
 
     def remove_migration_token(self, key_id: str) -> bool:
         """Remove our enrolled key. Returns False if it was already gone."""

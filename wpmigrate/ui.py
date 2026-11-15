@@ -23,10 +23,25 @@ _CODES = {
     "reset": "0", "bold": "1", "dim": "2",
     "red": "31", "green": "32", "yellow": "33", "blue": "34", "magenta": "35", "cyan": "36", "white": "97", "grey": "90",
 }
-_UNICODE = {"ok": "✓", "fail": "✗", "warn": "!", "ask": "?", "prompt": "›", "bullet": "•", "bar": "━", "dot": "·", "arrow": "→",
+_UNICODE = {"ok": "✓", "phase": "◆", "fail": "✗", "warn": "!", "ask": "?", "prompt": "›", "bullet": "•", "bar": "━", "dot": "·", "arrow": "→",
             "frames": "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏", "tl": "╭", "tr": "╮", "bl": "╰", "br": "╯", "h": "─", "v": "│"}
-_ASCII = {"ok": "+", "fail": "x", "warn": "!", "ask": "?", "prompt": ">", "bullet": "-", "bar": "#", "dot": "-", "arrow": ">",
+_ASCII = {"ok": "+", "phase": "*", "fail": "x", "warn": "!", "ask": "?", "prompt": ">", "bullet": "-", "bar": "#", "dot": "-", "arrow": ">",
           "frames": "|/-\\", "tl": "+", "tr": "+", "bl": "+", "br": "+", "h": "-", "v": "|"}
+
+
+# The engine's ten stages, shown as five plainly named phases.
+PHASES = {
+    "collect": "First, a few questions",
+    "requirements": "Getting connected",
+    "login": "Getting connected",
+    "plugin": "Getting connected",
+    "authorize": "Getting connected",
+    "download": "Copying your site",
+    "destination": "Setting up its new home",
+    "deploy": "Putting everything in place",
+    "cleanup_source": "Finishing up",
+    "summary": "Finishing up",
+}
 
 
 def visible_length(text: str) -> int:
@@ -189,6 +204,7 @@ class Renderer:
         self._spinner: tuple[str, float] | None = None
         self._bar: _Bar | None = None
         self._last_plain_progress = 0.0
+        self._phase = ""
 
     # -- small helpers ----------------------------------------------------
 
@@ -296,10 +312,11 @@ class Renderer:
         finished_bar = self._bar is not None and (self._bar.percent or 0) >= 99.9
         self.end_live(failed=status == Status.FAILED)
         if status == Status.STARTED:
-            number, total = event.details.get("number"), event.details.get("total")
-            t.write("")
-            step = t.style(f" {number}/{total} ", "bold", "cyan") if number else ""
-            t.write(step + " " + t.style(event.message, "bold"))
+            phase = PHASES.get(event.stage, event.message)
+            if phase != self._phase:
+                self._phase = phase
+                t.write("")
+                t.write(" " + t.style(t.symbols["phase"], "cyan", "bold") + " " + t.style(phase, "bold"))
         elif status == Status.DONE and event.action_required:
             self._summary(event)
         elif status == Status.INFO:
@@ -375,7 +392,7 @@ class Renderer:
         for item in (event.action_required or "").splitlines():
             item = item[2:] if item.startswith("- ") else item
             lines = t.wrap(item, first="    ", rest="    ")
-            careful = item.startswith("Careful")
+            careful = item.startswith("Good to know")
             lines[0] = "  " + t.style(s["bullet"], "yellow" if careful else "cyan") + " " + lines[0][4:]
             for line in lines:
                 t.write(line)

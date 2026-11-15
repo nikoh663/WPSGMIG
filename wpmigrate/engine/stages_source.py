@@ -1,4 +1,4 @@
-"""Stages 1-5: questions, requirements, and the source site."""
+"""Stages 1-5: questions, requirements, and your original site."""
 
 from __future__ import annotations
 
@@ -67,7 +67,7 @@ def admin_password(ctx: Context) -> str:
     """The source admin password, asked for when needed and kept in memory."""
     if not ctx.secrets.admin_password:
         ctx.secrets.admin_password = ctx.prompter.ask_secret(
-            SecretQuestion("admin_password", f"Password for the administrator account \"{ctx.st.get('admin_user')}\"")
+            SecretQuestion("admin_password", f"And the password for \"{ctx.st.get('admin_user')}\"?")
         )
         ctx.redactor.add(ctx.secrets.admin_password)
     return ctx.secrets.admin_password
@@ -139,11 +139,11 @@ def stage_collect(ctx: Context) -> None:
     if not source_url:
         previous = unfinished_run_for(ctx, ctx.options.start_dir)
         if previous:
-            resume = ctx.prompter.confirm(ConfirmQuestion("resume", f"An unfinished copy of {previous} was started from this folder. Continue it?", default=True))
+            resume = ctx.prompter.confirm(ConfirmQuestion("resume", f"You started copying {previous} from this folder earlier. Continue it?", default=True))
             if resume:
                 source_url = previous
     if not source_url:
-        source_url = ctx.prompter.ask_text(TextQuestion("source_url", "What is the address of the WordPress site you want to copy?", help="For example https://example.com"))
+        source_url = ctx.prompter.ask_text(TextQuestion("source_url", "Which site would you like to copy?", help="Type its address, for example https://example.com"))
     source_url = normalize_site_url(source_url)
     open_site_state(ctx, source_url)
     state = ctx.st
@@ -154,11 +154,11 @@ def stage_collect(ctx: Context) -> None:
             raise Cancelled("Nothing was changed.", "Run the tool again when you want a fresh copy.")
         state = start_over(ctx)
     if state.stage_done("collect") and state.get("source_url") == source_url:
-        ctx.info(f"Continuing the copy of {source_url} from where it stopped.")
+        ctx.info(f"Welcome back. Picking up the copy of {source_url} where it stopped.")
         if ctx.options.admin_user and ctx.options.admin_user != state.get("admin_user"):
             state.set("admin_user", ctx.options.admin_user)
         return
-    admin_user = ctx.options.admin_user or ctx.prompter.ask_text(TextQuestion("admin_user", "Administrator username (or e-mail) on that site", help="The login you use at wp-admin."))
+    admin_user = ctx.options.admin_user or ctx.prompter.ask_text(TextQuestion("admin_user", "What is your admin username (or e-mail) on that site?", help="The one you use to sign in at wp-admin."))
     admin_user = admin_user.strip()
     if not admin_user:
         raise MigrationError("No administrator username was entered.", "Run the tool again and enter the username you use to log in to wp-admin.")
@@ -171,16 +171,16 @@ def stage_collect(ctx: Context) -> None:
     if guessed and guessed.rstrip("/") != source_url.rstrip("/"):
         question = TextQuestion(
             "new_site_url",
-            "What address will the copied site use?",
+            "What address should the copy use?",
             default=guessed,
             help=f"This folder looks like it is served at {guessed}. To keep the old address instead (and point the domain here later), type {source_url}",
         )
     else:
         question = TextQuestion(
             "new_site_url",
-            "What address will the copied site use?",
+            "What address should the copy use?",
             default=source_url,
-            help="Press Enter to keep the same address (you will point the domain to this server later).",
+            help="Press Enter to keep the same address. You can point the domain to this server afterwards.",
         )
     new_site_url = ctx.options.new_site_url or ctx.prompter.ask_text(question)
     new_site_url = normalize_site_url(new_site_url)
@@ -230,7 +230,7 @@ def stage_requirements(ctx: Context) -> None:
     if not phar.exists():
         if ctx.options.reprint_phar:
             raise RequirementsFailed(f"{phar} does not exist.", "Check the path given with --reprint-phar.")
-        ctx.info("Getting the transfer engine ready...")
+        ctx.info("Getting things ready...")
         try:
             download(constants.REPRINT_PHAR_URL, phar, user_agent=ctx.options.user_agent)
         except OSError as error:
@@ -242,7 +242,7 @@ def stage_requirements(ctx: Context) -> None:
     if version.returncode != 0 or not version.stdout.strip():
         raise RequirementsFailed(f"The transfer engine at {phar} does not run with PHP {chosen.version_text}.", "Delete that file so the tool downloads it again, or try another PHP with --php.")
     reprint_version = version.stdout.strip().splitlines()[-1]
-    ctx.info("The transfer engine is ready.", engine_version=reprint_version)
+    ctx.info("Everything needed is in place.", engine_version=reprint_version)
     ctx.st.update({
         "php_path": chosen.path,
         "php_version": chosen.version_text,
@@ -261,7 +261,7 @@ def stage_login(ctx: Context) -> None:
     site = source_site(ctx)
     site.discover()
     if site.is_logged_in():
-        ctx.info("Still logged in to the source site from the previous run.")
+        ctx.info("Still logged in to your original site from the previous run.")
     else:
         attempts = 0
         while True:
@@ -274,20 +274,20 @@ def stage_login(ctx: Context) -> None:
                 ctx.secrets.admin_password = None
                 if attempts >= constants.MAX_LOGIN_ATTEMPTS:
                     raise LoginFailed(
-                        f"The source site did not accept the username and password ({attempts} tries). The tool stopped so the account does not get locked.",
+                        f"Your original site did not accept the username and password ({attempts} tries). The tool stopped so the account does not get locked.",
                         "Check the login in a browser, then run the tool again. If you cannot log in automatically, run it with --manual to do the source steps yourself.",
                         code="WRONG_PASSWORD",
                     ) from error
                 ctx.warn(f"{error.what} {error.next_step}")
                 try:
-                    user = ctx.prompter.ask_text(TextQuestion("admin_user_retry", "Administrator username", default=ctx.st.get("admin_user")))
+                    user = ctx.prompter.ask_text(TextQuestion("admin_user_retry", "Admin username", default=ctx.st.get("admin_user")))
                     ctx.st.set("admin_user", user.strip() or ctx.st.get("admin_user"))
                     admin_password(ctx)
                 except NoAnswerAvailable:
                     raise LoginFailed(error.what, "Check the username and password, then run the tool again.", code="WRONG_PASSWORD") from error
     ctx.st.set("failed_logins", 0)
     site.check_administrator()
-    ctx.info("Logged in to the source site as an administrator.")
+    ctx.info("Signed in to your original site.")
 
 
 def stage_plugin(ctx: Context) -> None:
@@ -295,18 +295,18 @@ def stage_plugin(ctx: Context) -> None:
     site = source_site(ctx)
     found = site.find_reprint_plugin()
     if found and found.status in ("active", "network-active"):
-        ctx.info("The transfer plugin is already active on the source site.")
+        ctx.info("The transfer plugin is already active on your original site.")
         ctx.st.update({"reprint_plugin": found.plugin, "plugin_installed_by_tool": bool(ctx.st.get("plugin_installed_by_tool", False))})
         return
     if found:
-        ctx.info("Activating the transfer plugin on the source site...")
+        ctx.info("Activating the transfer plugin on your original site...")
         site.activate(found)
         ctx.st.update({"reprint_plugin": found.plugin, "plugin_installed_by_tool": bool(ctx.st.get("plugin_installed_by_tool", False))})
         return
-    ctx.info("Installing the transfer plugin on the source site...")
+    ctx.info("Adding a small helper plugin to your original site...")
     installed = site.install_and_activate()
     ctx.st.update({"reprint_plugin": installed.plugin, "plugin_installed_by_tool": True})
-    ctx.info("Transfer plugin installed and activated on the source site.")
+    ctx.info("Added a small helper plugin to your original site (it is removed again at the end).")
 
 
 def ensure_key(ctx: Context, runner: ReprintRunner) -> tuple[str, str]:
@@ -333,7 +333,7 @@ def stage_authorize(ctx: Context) -> None:
     """Create the Migration Token and authorize it in Tools → Reprint Server."""
     runner = reprint_runner(ctx)
     if ctx.st.get("authorized") and (ctx.st.get("key_id") or runner.connection_token):
-        ctx.info("The source site already trusts this server.")
+        ctx.info("Your original site already trusts this server.")
         return
     site = source_site(ctx)
     _, page = site.reprint_page()
@@ -341,7 +341,7 @@ def stage_authorize(ctx: Context) -> None:
         key_id, public_key = ensure_key(ctx, runner)
         enrolled = site.enroll_migration_token(public_key)
         ctx.st.update({"key_id": key_id, "enrolled_key_id": enrolled or key_id, "authorized": True, "auth_scheme": "key"})
-        ctx.info("The source site now trusts this server.")
+        ctx.info("Your original site and this server are now connected.")
         return
     if page.connection_token_form is not None:
         ctx.info("The source server has no OpenSSL, so it uses a shared connection token instead of a Migration Token.")
@@ -350,7 +350,7 @@ def stage_authorize(ctx: Context) -> None:
         site.save_connection_token(token)
         LocalSystem.write_private_file(ctx.p.connection_token_file, token)
         ctx.st.update({"authorized": True, "auth_scheme": "connection-token"})
-        ctx.info("Saved a new connection token on the source site.")
+        ctx.info("Saved a new connection token on your original site.")
         return
     if page.managed_by_file:
         raise SourceStepFailed("The source host manages Reprint access itself (public-keys.php or secret.php), so the settings screen cannot authorize this server.", code="HOST_MANAGED")
@@ -396,7 +396,7 @@ def manual_fallback(ctx: Context, reason: str) -> None:
     ]
     ctx.emit(
         Status.ACTION_REQUIRED,
-        "Please finish these steps on the source site yourself:",
+        "Please finish these steps on your original site yourself:",
         action_required=numbered(instructions),
         display_token=public_key,
     )
@@ -410,7 +410,7 @@ def manual_fallback(ctx: Context, reason: str) -> None:
             )
         except NoAnswerAvailable as error:
             raise AuthorizationNeeded(
-                "The source site has to authorize this server before the copy can start.",
+                "Your original site has to authorize this server before the copy can start.",
                 "Follow the steps above, then run the tool again; it continues from here.",
             ) from error
         answer = (answer or "").strip()
@@ -421,10 +421,10 @@ def manual_fallback(ctx: Context, reason: str) -> None:
         ok, error_text = verify_authorized(ctx, runner)
         if ok:
             ctx.st.update({"authorized": True, "manual_source_steps": True, "auth_scheme": "connection-token" if answer else "key"})
-            ctx.info("The source site now accepts this server.")
+            ctx.info("Your original site now accepts this server.")
             return
-        ctx.warn(f"The source site does not accept this server yet ({error_text}). Check that the plugin is active and that you clicked Authorize client.")
+        ctx.warn(f"Your original site does not accept this server yet ({error_text}). Check that the plugin is active and that you clicked Authorize client.")
     raise AuthorizationNeeded(
-        "The source site still does not accept this server.",
+        "Your original site still does not accept this server.",
         "Check the steps above in the browser, then run the tool again; it continues from here.",
     )

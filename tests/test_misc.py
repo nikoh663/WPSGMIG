@@ -146,7 +146,8 @@ class HelperTests(unittest.TestCase):
         renderer.emit(Event("download", Status.FAILED, "It broke.", action_required="Run it again."))
         text = out.getvalue()
         self.assertNotIn("\x1b", text)  # no colours when the output is not a terminal
-        self.assertIn("6/10", text)
+        self.assertIn("Copying your site", text)
+        self.assertNotIn("/10", text)
         self.assertIn("100.0% Downloading files", text)
         self.assertIn("https://very-long-host-name.example.com/path", text)
         self.assertIn("Run it again.", text)

@@ -54,9 +54,9 @@ def choose_folder(ctx: Context) -> Path:
         answer = ctx.prompter.ask_text(
             TextQuestion(
                 "dest_folder",
-                "Install the site in this folder, or in another one (for example a subfolder)?",
+                "Which folder should the copy go in?",
                 default=str(start),
-                help="Press Enter for this folder, type a subfolder name such as blog, or a full path.",
+                help="You can also type a subfolder name such as blog, or a full path.",
             )
         ).strip()
         folder = Path(os.path.expanduser(answer or str(start)))
@@ -309,7 +309,7 @@ def choose_database(ctx: Context) -> None:
             if values:
                 ctx.secrets.db_password = values.password
                 ctx.redactor.add(values.password)
-    ctx.note("Now the database for the copied site. If you have not yet, create an empty database and a user for it in your hosting panel.")
+    ctx.note("Next, the database for the copy. If you do not have one yet, create an empty database and a user for it in your hosting panel first.")
     while True:
         host = ctx.prompter.ask_text(TextQuestion("db_host", "Database host", default=defaults["host"] or "localhost")).strip()
         name = ctx.prompter.ask_text(TextQuestion("db_name", "Database name", default=defaults["name"] or None)).strip()
@@ -337,7 +337,7 @@ def choose_database(ctx: Context) -> None:
         ctx.warn(f"The database {name} already has {len(check.prefix_tables)} table(s) starting with {prefix} ({', '.join(check.prefix_tables[:6])}{' ...' if len(check.prefix_tables) > 6 else ''}). They will be replaced by the copied site's tables.")
     else:
         ctx.info(f"Connected to the database {name} (MySQL {check.version}).")
-    agree = ctx.prompter.confirm(ConfirmQuestion("confirm_replace_tables", f"Import the copied site into the database {name}, replacing any tables that start with {prefix}?", default=False))
+    agree = ctx.prompter.confirm(ConfirmQuestion("confirm_replace_tables", f"Ready to import into the database {name}? Any tables that start with {prefix} will be replaced.", default=False))
     if not agree:
         raise Cancelled("Stopped before changing the database.", "Run the tool again to choose a different database.")
     state.update({"dest_db": {"host": host, "name": name, "user": user, "table_prefix": prefix}, "dest_db_confirmed": True})
@@ -503,7 +503,7 @@ def _place_files(ctx: Context, runner: ReprintRunner, folder: Path) -> None:
     place(assemble, folder)
     LocalSystem.make_web_readable(folder)
     state.update({"files_placed": True})
-    ctx.info(f"Put the site's files in {folder}.")
+    ctx.info(f"The files are in place in {folder}.")
 
 
 def _write_config(ctx: Context, folder: Path) -> None:
@@ -516,15 +516,15 @@ def _write_config(ctx: Context, folder: Path) -> None:
     else:
         sample = folder / "wp-config-sample.php"
         if not sample.exists():
-            raise DestinationFailed("The copied site has no wp-config.php and no wp-config-sample.php.", "Check the source site's files, then run the tool again.")
+            raise DestinationFailed("The copied site has no wp-config.php and no wp-config-sample.php.", "Check your original site's files, then run the tool again.")
         text = sample.read_text(encoding="utf-8", errors="replace")
         for key in ("AUTH_KEY", "SECURE_AUTH_KEY", "LOGGED_IN_KEY", "NONCE_KEY", "AUTH_SALT", "SECURE_AUTH_SALT", "LOGGED_IN_SALT", "NONCE_SALT"):
             text = wpconfig.set_define(text, key, random_tokens.token_urlsafe(48))
-        ctx.warn("The source site keeps wp-config.php outside its web folder, so a new one was created from the sample. Logged-in users will have to log in again.")
+        ctx.warn("Your original site keeps wp-config.php outside its web folder, so a new one was created from the sample. Logged-in users will have to log in again.")
     text = wpconfig.apply_destination(text, db=settings, site_url=state.get("new_site_url"))
     mode = 0o644
     LocalSystem.write_file(config, text, mode)
-    ctx.info("Wrote wp-config.php with the new database details.")
+    ctx.info("Connected the copy to its database (wp-config.php).")
 
 
 def _destination_php_version(ctx: Context, folder: Path) -> tuple[str | None, str]:
@@ -562,7 +562,7 @@ def _fix_rewrite_rules(ctx: Context, folder: Path) -> None:
     fixed = dest.set_rewrite_base(text, path)
     if fixed != text:
         LocalSystem.write_file(htaccess, fixed, 0o644)
-        ctx.info(f"Updated the WordPress rules in .htaccess for the path {path}.")
+        ctx.info(f"Adjusted .htaccess so links work under {path}.")
 
 
 def stage_deploy(ctx: Context) -> None:
@@ -592,7 +592,7 @@ def stage_deploy(ctx: Context) -> None:
         webhost = summary.get("webhost") or "other"
         state.set("source_webhost", webhost)
         if webhost != "other":
-            ctx.warn(f"The source site was hosted on a managed platform ({webhost}). Its platform-only plugins were removed from the copy; check the site carefully.")
+            ctx.warn(f"Your original site was hosted on a managed platform ({webhost}). Its platform-only plugins were removed from the copy; check the site carefully.")
         for generated in ("runtime.php", "start.sh"):
             if (ctx.p.runtime / generated).exists():
                 (ctx.p.runtime / generated).unlink()
@@ -612,7 +612,7 @@ def stage_deploy(ctx: Context) -> None:
             "Check the database details and the site's PHP version in your hosting panel, then run the tool again.",
         )
     state.set("disabled_plugins", disabled)
-    ctx.info("WordPress starts correctly in the new location.")
+    ctx.info("WordPress starts up fine in its new home.")
     new_url = state.get("new_site_url")
     if new_url.rstrip("/") != (state.get("source_home_url") or state.get("source_url") or "").rstrip("/"):
         # A different address than the source's: it can be opened right away.
@@ -621,7 +621,7 @@ def stage_deploy(ctx: Context) -> None:
         good = answered and detail[5:6] in ("2", "3")
         state.update({"new_site_answers": good, "new_site_answer_detail": detail})
         if good:
-            ctx.info(f"The copy is online at {new_url}.")
+            ctx.info(f"The copy is live at {new_url}.")
         elif answered:
             ctx.warn(f"{new_url} answered with an error ({detail}). Open it in a browser; if it stays broken, check the site's PHP version and the error log in your hosting panel.")
         else:

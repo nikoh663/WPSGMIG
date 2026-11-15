@@ -1,4 +1,4 @@
-"""The one HTTP client used toward the source site.
+"""The one HTTP client used toward your original site.
 
 It behaves like a careful browser session: browser headers, a persistent
 cookie jar, Referer and Origin on form posts, one request at a time with a

@@ -1,22 +1,22 @@
 
-  ╭────────────────────────────────────────╮
-  │  wpmigrate 1.1.0                       │
-  │  Copy a WordPress site to this server  │
-  ╰────────────────────────────────────────╯
-  10 steps. Stop any time with Ctrl+C; run it again and it continues where it
-  stopped.
+  ╭─────────────────────────────────────────────────╮
+  │  wpmigrate 1.2.0                                │
+  │  Let's move your WordPress site to this server  │
+  ╰─────────────────────────────────────────────────╯
+  Just answer a few questions and I'll do the rest. You can stop any time with
+  Ctrl+C; run me again and I pick up where I left off.
 
- 1/10  Site details
+ ◆ First, a few questions
 
-  ? An unfinished copy of https://src-a.test was started from this folder.
-    Continue it?
+  ? You started copying https://src-a.test from this folder earlier. Continue
+    it?
   › [Y/n] 
-  ✓ Continuing the copy of https://src-a.test from where it stopped.
+  ✓ Welcome back. Picking up the copy of https://src-a.test where it stopped.
 
- 7/10  Setting up the destination
+ ◆ Setting up its new home
 
-  Now the database for the copied site. If you have not yet, create an empty
-  database and a user for it in your hosting panel.
+  Next, the database for the copy. If you do not have one yet, create an empty
+  database and a user for it in your hosting panel first.
 
   ? Database host
     Press Enter for localhost
@@ -33,43 +33,39 @@
   › 
   ✓ Connected to the database site_new (MySQL 10.11.19-MariaDB-ubu2204).
 
-  ? Import the copied site into the database site_new, replacing any tables
-    that start with wp_?
+  ? Ready to import into the database site_new? Any tables that start with wp_
+    will be replaced.
   › [y/N] y
 
- 8/10  Installing the copied site
+ ◆ Putting everything in place
   ✓ Importing the database  0.1 MB · 41 queries · 0s
-  ✓ Put the site's files in /home/wpuser/www/dest.test/public_html.
-  ✓ Wrote wp-config.php with the new database details.
-  ✓ WordPress starts correctly in the new location.
-  ✓ The copy is online at https://dest.test.
+  ✓ The files are in place in /home/wpuser/www/dest.test/public_html.
+  ✓ Connected the copy to its database (wp-config.php).
+  ✓ WordPress starts up fine in its new home.
+  ✓ The copy is live at https://dest.test.
 
- 9/10  Tidying up the source site
+ ◆ Finishing up
 
-  ? The copy is finished. Tidy up the source site now (remove this server's
-    access and the transfer plugin)?
+  ? The copy is finished. Shall I tidy up your original site now? (This
+    disconnects this server from it and removes the helper plugin.)
   › [Y/n] y
-  ✓ Removed this server's access from the source site.
-  ✓ Removed the transfer plugin from the source site (this tool had installed
-    it).
+  ✓ Disconnected this server from your original site.
+  ✓ Removed the helper plugin from your original site.
+  ✓ Cleaned up the temporary download and sign-in files.
+  ✓ Removed the working files.
 
- 10/10  Summary
-  ✓ Deleted the downloaded database file and the login cookies.
-  ✓ Deleted the temporary working files.
+  ✓ All done! Your site has been copied.  (10s)
 
-  ✓ All done. Your site has been copied.  (11s)
-
-  • The copied site is in /home/wpuser/www/dest.test/public_html and uses the
+  • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
   • Its database is site_new on 172.30.0.12.
-  • It is online now. Open it: https://dest.test
-  • Check: the home page, a few posts and pages, images, the admin login,
-    contact forms, and any shop checkout.
-  • Careful: the copy is a live WordPress site. It may send e-mails (to
-    customers too) and take real payments, and scheduled tasks will run.
-    Switch off what must not run twice.
-  • Logs and saved progress for this copy are in
-    /home/wpuser/.wpmigrate/sites/src-a.test.
+  • It is live now. Open it: https://dest.test
+  • Have a look around: the home page, a few posts and pages, images, the
+    admin login, contact forms, and any shop checkout.
+  • Good to know: the copy is a real, working site. It can send e-mails (to
+    customers too), take payments and run scheduled tasks. Switch off anything
+    that must not happen twice.
+  • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
 
 [drive] exit code: 0
 OK   https://dest.test/ -> HTTP 200, contains 'SRC-A-7731'

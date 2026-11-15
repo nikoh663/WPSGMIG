@@ -21,7 +21,7 @@ from wpmigrate.engine.prompts import (
     TypeToConfirmQuestion,
     WaitQuestion,
 )
-from wpmigrate.engine.runner import STAGES, Engine
+from wpmigrate.engine.runner import Engine
 from wpmigrate.engine.system import LocalSystem
 from wpmigrate.redact import Redactor
 from wpmigrate.ui import Renderer, Terminal
@@ -298,8 +298,8 @@ def main(argv: list[str] | None = None) -> int:
         ctx.log("terminal disconnected; continuing without questions")
 
     signal.signal(signal.SIGHUP, on_hangup)
-    renderer.banner(f"wpmigrate {__version__}", "Copy a WordPress site to this server")
-    renderer.hint(f"{len(STAGES)} steps. Stop any time with Ctrl+C; run it again and it continues where it stopped.")
+    renderer.banner(f"wpmigrate {__version__}", "Let's move your WordPress site to this server")
+    renderer.hint("Just answer a few questions and I'll do the rest. You can stop any time with Ctrl+C; run me again and I pick up where I left off.")
     engine = Engine(ctx, tool_location=tool_location())
     try:
         code = engine.run()
@@ -307,7 +307,7 @@ def main(argv: list[str] | None = None) -> int:
         renderer.end_live()
         system.stop_children()
         terminal.write("")
-        renderer.line("warn", "Stopped. Run the tool again to continue where it stopped.")
+        renderer.line("warn", "Paused. Run me again whenever you like and I will pick up where I left off.")
         ctx.log("stopped with Ctrl+C")
         return constants.ExitCode.CANCELLED
     renderer.end_live()

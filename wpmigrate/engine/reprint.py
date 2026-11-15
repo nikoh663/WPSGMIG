@@ -187,7 +187,7 @@ class ReprintRunner:
                 return
             if record_type == "lifecycle" and record.get("event") == "retry":
                 wait = record.get("retry_after_seconds")
-                self.emit(Event(stage, Status.INFO, f"The source site asked us to slow down (HTTP {record.get('http_code')}); waiting {wait} seconds before continuing."))
+                self.emit(Event(stage, Status.INFO, f"Your original site asked us to slow down (HTTP {record.get('http_code')}); waiting {wait} seconds before continuing."))
                 return
             progress = record.get("progress")
             if isinstance(progress, dict):
@@ -263,7 +263,7 @@ class ReprintRunner:
                     return result
                 wait = constants.TEMPORARY_FAILURE_WAITS[temporary_failures]
                 temporary_failures += 1
-                self.emit(Event(stage, Status.INFO, f"The source site is busy or the connection dropped. Waiting {wait} seconds, then continuing where it stopped."))
+                self.emit(Event(stage, Status.INFO, f"Your original site is busy or the connection dropped. Waiting {wait} seconds, then continuing where it stopped."))
                 self.sleep(wait)
                 continue
             return result
