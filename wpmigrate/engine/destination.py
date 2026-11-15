@@ -22,6 +22,21 @@ def is_wordpress_entry(name: str) -> bool:
     return name in _WORDPRESS_NAMES or bool(_WORDPRESS_PATTERN.match(name))
 
 
+# Things a hosting account puts in a web folder by itself. They do not get in
+# WordPress's way (and .well-known is needed for SSL certificates), so they
+# are left where they are without asking.
+_HOST_NAMES = {".well-known", "cgi-bin", ".ftpquota", "default.html", "default.htm"}
+
+
+def is_host_entry(name: str) -> bool:
+    return name.lower() in _HOST_NAMES
+
+
+def shadows_wordpress(name: str) -> bool:
+    """A page that web servers usually show instead of WordPress's index.php."""
+    return name.lower() in ("index.html", "index.htm")
+
+
 def has_wordpress(folder: Path) -> bool:
     return (folder / "wp-config.php").is_file() and (folder / "wp-includes").is_dir() or (
         (folder / "wp-includes").is_dir() and (folder / "wp-admin").is_dir()

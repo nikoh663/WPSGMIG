@@ -186,8 +186,8 @@ def build_parser() -> argparse.ArgumentParser:
     add("--db-user", metavar="USER", help="database user for the copied site")
     add("--replace-tables", action="store_true", default=None, help="confirm replacing tables in that database")
     add("--reuse-old-db", choices=("yes", "no"), help="use the removed site's database details")
-    add("--other-files", choices=("backup", "remove"), help="what to do with non-WordPress files in the folder")
-    add("--skip-backups", choices=("yes", "no"), help="leave leftover backup files out of the copy (default when not asking: yes)")
+    add("--other-files", choices=("backup", "remove", "leave"), help="what to do with non-WordPress files in the folder")
+    add("--skip-backups", choices=("yes", "no"), help="leave leftover backups out of the copy (yes, the default) or copy all of them (no)")
     add("--cleanup-source", choices=("yes", "no"), help="remove the plugin and this server's access from the source at the end (default: yes)")
     add("--manual", action="store_true", help="do the source steps (plugin and authorization) yourself in the browser")
     add("--php", metavar="PATH", help="PHP program to use (default: the newest suitable one found)")
@@ -242,13 +242,13 @@ def presets_from(args: argparse.Namespace) -> dict[str, Any]:
     if args.cleanup_source:
         presets["cleanup_source"] = args.cleanup_source == "yes"
     if args.skip_backups:
-        presets["skip_extra_files"] = args.skip_backups == "yes"
+        presets["copy_extra_files"] = "none" if args.skip_backups == "yes" else "all"
     if args.resume:
         presets["resume"] = args.resume == "yes"
     if args.non_interactive:
         presets.setdefault("create_dest_folder", True)
         presets.setdefault("copy_again", True)
-        presets.setdefault("skip_extra_files", True)
+        presets.setdefault("copy_extra_files", "none")
         presets.setdefault("use_subfolder_address", True)
         presets.setdefault("remove_tool_files", False)
     return presets

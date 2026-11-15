@@ -43,18 +43,24 @@ extensions (all common on hosting). It runs as your normal hosting user and does
    separately, then downloads both. It resumes if it is interrupted.
    - Backup archives made by All-in-One WP Migration, UpdraftPlus, Duplicator,
      BackWPup, WPvivid, BackupBuddy and similar plugins are never copied, and
-     neither are cache and log files.
+     neither are cache and log files. The transfer engine always skips them and
+     has no way to bring them along. The tool tells you which backup plugins it
+     can see and roughly how much space these take on the old site (from the
+     site's own Site Health numbers), so you can download a backup from the
+     plugin's screen if you need one.
    - It also looks for other leftover backups: backup folders, database dumps
      and large archives next to WordPress. It lists them with their sizes and
-     asks before leaving them out (`--skip-backups yes|no`). Nothing is
-     deleted on the old site.
+     asks whether to copy none of them (the default), all of them, or the
+     ones you pick by number (`--skip-backups yes|no` answers none or all in
+     advance). Nothing is deleted on the old site.
 7. Sets up the destination:
    - which folder (press Enter for the current one, or type a subfolder such as
      `blog`);
    - what to do with a WordPress site already in that folder (remove it, keep it
      at `old.<domain>`, or cancel);
    - the database details;
-   - what to do with files that are not part of WordPress.
+   - what to do with files that are not part of WordPress. Files the host puts
+     there, such as `.well-known`, `cgi-bin` and `Default.html`, are left alone.
 8. Imports the database, puts the files in place, writes `wp-config.php`, and
    checks that WordPress starts.
 9. Removes this server's access and the plugin from the old site (the plugin

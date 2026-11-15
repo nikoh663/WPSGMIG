@@ -231,6 +231,25 @@ class SourceSite:
                 code="NOT_ADMIN",
             )
 
+    def files_size(self) -> int | None:
+        """Size of all files of the site as its own Site Health screen reports it.
+
+        Read-only. Returns ``None`` when the site does not give a full answer
+        (older WordPress, a timeout on a very large site, or no permission).
+        """
+        response = self.rest("GET", "wp-site-health/v1/directory-sizes")
+        if response.status != 200:
+            return None
+        try:
+            data = response.json()
+            total = data["total_size"]["raw"]
+            database = data["database_size"]["raw"]
+        except (ValueError, KeyError, TypeError):
+            return None
+        if not isinstance(total, int) or not isinstance(database, int) or total < database:
+            return None
+        return total - database
+
     # -- plugin -----------------------------------------------------------------
 
     def find_reprint_plugin(self) -> PluginInfo | None:

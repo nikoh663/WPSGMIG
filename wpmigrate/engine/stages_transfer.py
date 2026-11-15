@@ -7,9 +7,9 @@ from wpmigrate.engine import sizes
 from wpmigrate.engine.context import Context
 from wpmigrate.engine.destination import human_size
 from wpmigrate.engine.errors import AuthorizationNeeded, TransferFailed
-from wpmigrate.engine.prompts import ConfirmQuestion
+from wpmigrate.engine.prompts import Choice, ChoiceQuestion, TextQuestion
 from wpmigrate.engine.reprint import ReprintResult, ReprintRunner
-from wpmigrate.engine.stages_source import reprint_runner
+from wpmigrate.engine.stages_source import reprint_runner, source_site
 from wpmigrate.engine.system import LocalSystem
 
 _BLOCKED_HINTS = {
@@ -85,33 +85,109 @@ def _measure(ctx: Context, runner: ReprintRunner, credentials: list[str]) -> Non
     lines = ["Where the space goes:"]
     lines += [f"  {human_size(size):>10}  {name}" for name, size in summary["parts"][:4] if size]
     lines += [f"  {human_size(size):>10}  database table {name}" for name, size in database["largest"][:2] if size >= sizes.MEGABYTE]
-    lines.append("Backups made by plugins such as All-in-One WP Migration, UpdraftPlus and Duplicator are left out automatically, and so are cache and log files.")
     ctx.note("\n".join(lines))
+    _report_plugin_backups(ctx, files, root, summary["bytes"])
+    _choose_leftovers(ctx, sizes.find_extras(files, root))
 
-    extras = sizes.find_extras(files, root)
+
+def _report_plugin_backups(ctx: Context, files: list[sizes.RemoteFile], root: str | None, listed_bytes: int) -> None:
+    """Say what is never copied: plugin-made backups, cache and logs."""
+    owners = sizes.plugin_backup_owners(files, root)
+    hidden = _uncopied_bytes(ctx, listed_bytes)
+    ctx.st.update({"plugin_backup_owners": owners, "uncopied_bytes": hidden})
+    seen = f" I can see backup folders from {_join(owners)}." if owners else ""
+    if hidden is not None and hidden >= sizes.LARGE_ARCHIVE_BYTES:
+        ctx.note(
+            f"About {human_size(hidden)} more on your original site is not part of the copy: "
+            f"backup archives made by backup plugins, plus cache and log files.{seen} "
+            "These cannot be brought along, so if you need one of those backups, download it from the plugin's own screen. They stay untouched on your original site."
+        )
+    elif owners:
+        ctx.note(
+            f"Your original site has backup folders from {_join(owners)}. The backup archives those plugins made are not part of the copy and cannot be brought along, "
+            "and I cannot see how big they are. If you need one, download it from the plugin's own screen. They stay untouched on your original site."
+        )
+    else:
+        ctx.note("Backup archives made by plugins such as All-in-One WP Migration, UpdraftPlus and Duplicator are never part of the copy, and neither are cache and log files.")
+
+
+def _join(names: list[str]) -> str:
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _uncopied_bytes(ctx: Context, listed_bytes: int) -> int | None:
+    """How much the original site holds beyond the files that will be copied.
+
+    Asks the original site for its own total (a read-only request with the
+    login from earlier). Returns ``None`` when there is no login to use or
+    the site does not answer; the copy does not depend on it.
+    """
+    try:
+        site = source_site(ctx)
+        if not site.client.has_cookie("wordpress_logged_in_"):
+            return None
+        site.discover()
+        total = site.files_size()
+    except Exception as error:  # noqa: BLE001 - only a nicety, never stop the copy for it
+        ctx.log(f"could not read the original site's total size: {error}")
+        return None
+    return None if total is None else max(0, total - listed_bytes)
+
+
+def _choose_leftovers(ctx: Context, extras: list[sizes.Extra]) -> None:
+    """List leftover backups and ask which of them to copy (none by default)."""
+    state = ctx.st
     if not extras:
         state.update({"excluded_paths": [], "excluded_bytes": 0, "excluded_count": 0})
         return
+    # Keep the command line a sensible length: the biggest 200 are plenty.
+    extras = extras[:200]
+    shown = extras[:20]
     total = sum(extra.size for extra in extras)
-    count = sum(extra.files for extra in extras)
-    listing = [f"I also found {'something' if len(extras) == 1 else 'a few things'} that {'looks like a leftover backup' if len(extras) == 1 else 'look like leftover backups'}:"]
-    listing += [f"  {human_size(extra.size):>10}  {extra.shown}  ({extra.reason})" for extra in extras[:8]]
-    if len(extras) > 8:
-        listing.append(f"  ... and {len(extras) - 8} more")
+    one = len(extras) == 1
+    listing = [f"I also found {'something that looks like a leftover backup' if one else 'a few things that look like leftover backups'}:"]
+    for number, extra in enumerate(shown, 1):
+        row = f"  {number:>2}. {human_size(extra.size):>9}  {extra.shown}"
+        # The reason only when it still fits on a normal terminal line.
+        listing.append(row + f"  ({extra.reason})" if len(row) + len(extra.reason) + 4 <= 78 else row)
+    if len(extras) > len(shown):
+        listing.append(f"  ... and {len(extras) - len(shown)} smaller ones")
     ctx.note("\n".join(listing))
-    skip = ctx.prompter.confirm(ConfirmQuestion(
-        "skip_extra_files",
-        f"Shall I leave {'it' if count == 1 else 'them'} out of the copy? That saves {human_size(total)}.",
-        default=True,
-    ))
-    if skip:
-        # Keep the command line a sensible length: the biggest 200 are plenty.
-        chosen = extras[:200]
-        state.update({"excluded_paths": [extra.path for extra in chosen], "excluded_bytes": sum(extra.size for extra in chosen), "excluded_count": sum(extra.files for extra in chosen)})
-        ctx.info(f"Leaving out {human_size(sum(extra.size for extra in chosen))} of leftover backups. Nothing is deleted on your original site.")
+    choices = [
+        Choice("none", f"No, leave {'it' if one else 'them all'} out. That saves {human_size(total)}."),
+        Choice("all", f"Yes, copy {'it' if one else 'all of them'}."),
+    ]
+    if not one:
+        choices.append(Choice("some", "Let me pick which ones to copy."))
+    answer = ctx.prompter.ask_choice(ChoiceQuestion("copy_extra_files", f"Would you like {'this' if one else 'any of these'} copied too?", choices, default="none"))
+    keep: set[int] = set()
+    if answer == "all":
+        keep = set(range(len(extras)))
+    elif answer == "some":
+        for _ in range(3):
+            text = ctx.prompter.ask_text(TextQuestion(
+                "copy_extra_numbers",
+                "Which ones should I copy?",
+                help=f"Type their numbers, separated by commas, for example 1,3. Press Enter for none. The numbers go from 1 to {len(shown)}.",
+            ))
+            picked = sizes.parse_selection(text, len(shown))
+            if picked is not None:
+                keep = set(picked)
+                break
+            ctx.warn(f"I did not understand that. Please use numbers from 1 to {len(shown)}, for example 1,3.")
+    left_out = [extra for position, extra in enumerate(extras) if position not in keep]
+    state.update({
+        "excluded_paths": [extra.path for extra in left_out],
+        "excluded_bytes": sum(extra.size for extra in left_out),
+        "excluded_count": sum(extra.files for extra in left_out),
+    })
+    copied = [extra for position, extra in enumerate(extras) if position in keep]
+    if not left_out:
+        ctx.info("Okay, the leftover backups will be copied too.")
+    elif copied:
+        ctx.info(f"Okay, I will copy {_join([extra.shown for extra in copied])} and leave out the other {human_size(state.get('excluded_bytes'))}. Nothing is deleted on your original site.")
     else:
-        state.update({"excluded_paths": [], "excluded_bytes": 0, "excluded_count": 0})
-        ctx.info("Okay, everything will be copied.")
+        ctx.info(f"Leaving out {human_size(state.get('excluded_bytes'))} of leftover backups. Nothing is deleted on your original site.")
 
 
 def stage_download(ctx: Context) -> None:

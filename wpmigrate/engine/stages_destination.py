@@ -228,15 +228,33 @@ def keep_existing_site(ctx: Context, folder: Path) -> None:
                 raise Cancelled("Stopped before moving anything.", "Choose an empty folder for the old site and run the tool again.")
             target = Path(ctx.prompter.ask_text(TextQuestion("old_site_folder_other", "Full path of the folder for the old site")).strip())
             continue
+        # Files already in that folder only matter when they clash with the
+        # old site's own files, or would be shown instead of it (index.html).
         leftovers = dest.list_entries(target)
-        if leftovers:
-            listing = ", ".join(leftovers[:20]) + (" ..." if len(leftovers) > 20 else "")
-            agree = ctx.prompter.confirm(ConfirmQuestion("remove_old_folder_files", f"{target} already contains: {listing}. Remove these so the old site can go there?", default=False))
-            if not agree:
-                raise Cancelled("Stopped before moving anything.", f"Empty {target} yourself or choose another folder, then run the tool again.")
-            for name in leftovers:
-                LocalSystem.remove(target / name)
-            ctx.info(f"Removed {len(leftovers)} placeholder item(s) from {target}.")
+        moving, _ = dest.split_entries(folder, exclude=tool_paths(ctx))
+        clashing = [name for name in leftovers if name in moving]
+        shadowing = [name for name in leftovers if dest.shadows_wordpress(name) and name not in clashing]
+        in_the_way = clashing + shadowing
+        if in_the_way:
+            listing = ", ".join(in_the_way[:20]) + (" ..." if len(in_the_way) > 20 else "")
+            choices = [Choice("remove", "Remove them so the old site can go there.")]
+            if not clashing:
+                choices.append(Choice("leave", "Leave them. (A page named index.html may then show instead of the old site.)"))
+            choices += [Choice("path", "Use a different folder for the old site."), Choice("cancel", "Cancel.")]
+            what = "has files with the same names as the old site's" if clashing else "has a placeholder page"
+            choice = ctx.prompter.ask_choice(ChoiceQuestion("old_folder_files", f"{target} already {what}: {listing}. What would you like to do?", choices))
+            if choice == "cancel":
+                raise Cancelled("Stopped before moving anything.", "Run the tool again when you have decided; the download is kept.")
+            if choice == "path":
+                target = Path(os.path.normpath(os.path.expanduser(ctx.prompter.ask_text(TextQuestion("old_site_folder_other", "Full path of the folder for the old site")).strip())))
+                continue
+            if choice == "remove":
+                for name in in_the_way:
+                    LocalSystem.remove(target / name)
+                ctx.info(f"Removed {listing} from {target}.")
+        staying = [name for name in dest.list_entries(target)]
+        if staying:
+            ctx.info(f"Left {', '.join(staying[:8])}{' ...' if len(staying) > 8 else ''} in {target} as {'it is' if len(staying) == 1 else 'they are'}.")
         state.set("old_site_folder", str(target))
         break
 
@@ -371,6 +389,8 @@ def decide_other_files(ctx: Context, folder: Path) -> None:
     wordpress_entries, other = dest.split_entries(folder, exclude=tool_paths(ctx))
     if state.get("existing_action") == "none" and wordpress_entries:
         other = wordpress_entries + other
+    # What the hosting account put there itself stays, without asking.
+    other = [name for name in other if not dest.is_host_entry(name)]
     if not other:
         state.update({"other_files_action": "none", "other_files": []})
         return
@@ -380,7 +400,11 @@ def decide_other_files(ctx: Context, folder: Path) -> None:
         ChoiceQuestion(
             "other_files",
             "What should happen to them?",
-            [Choice("backup", f"Move them to a dated backup folder in {ctx.p.backups}."), Choice("remove", "Remove them.")],
+            [
+                Choice("backup", f"Move them to a dated backup folder in {ctx.p.backups}."),
+                Choice("remove", "Remove them."),
+                Choice("leave", "Leave them where they are."),
+            ],
             default="backup",
         )
     )
@@ -409,7 +433,7 @@ def _clear_folder(ctx: Context, folder: Path) -> None:
     state = ctx.st
     action = state.get("other_files_action")
     other = state.get("other_files") or []
-    if other and not state.destructive_done("other_files"):
+    if other and action != "leave" and not state.destructive_done("other_files"):
         state.record_destructive_started("other_files", action=action)
         if action == "backup":
             backup = ctx.p.backups / time.strftime("%Y%m%d-%H%M%S")
@@ -465,6 +489,20 @@ def _apply_database(ctx: Context, runner: ReprintRunner) -> None:
     state.record_destructive("tables_replaced", database=database["name"], prefix=database["table_prefix"])
 
 
+def _merge_folder(source: Path, target: Path, *, copy: bool) -> None:
+    """Put everything from source into target; files already in target win."""
+    import shutil
+    for name in sorted(os.listdir(source)):
+        item, existing = source / name, target / name
+        if item.is_dir() and not item.is_symlink() and existing.is_dir() and not existing.is_symlink():
+            _merge_folder(item, existing, copy=copy)
+        elif not existing.exists() and not existing.is_symlink():
+            if copy:
+                shutil.copytree(item, existing, symlinks=True) if item.is_dir() and not item.is_symlink() else shutil.copy2(item, existing, follow_symlinks=False)
+            else:
+                LocalSystem.move(item, existing)
+
+
 def _place_files(ctx: Context, runner: ReprintRunner, folder: Path) -> None:
     """Assemble the standard layout with Reprint, then move the real files in."""
     state = ctx.st
@@ -489,6 +527,9 @@ def _place_files(ctx: Context, runner: ReprintRunner, folder: Path) -> None:
     download_root = ctx.p.download.resolve()
     placed = 0
 
+    # Files that were in the folder before and stay there (host files, or "leave them").
+    kept_names = {name for name in dest.list_entries(folder, exclude=tool_paths(ctx))}
+
     def place(link_dir: Path, target_dir: Path) -> None:
         nonlocal placed
         for name in sorted(os.listdir(link_dir)):
@@ -500,6 +541,13 @@ def _place_files(ctx: Context, runner: ReprintRunner, folder: Path) -> None:
                     continue  # moved by an earlier, interrupted run
                 if not dest.is_inside(source, download_root):
                     raise DestinationFailed(f"The downloaded file {name} points outside the download folder.", "Run the tool again with a fresh download.")
+                if target.is_dir() and not target.is_symlink() and source.is_dir() and not source.is_symlink():
+                    # A folder that was left in place (such as .well-known): add the copy's files to it.
+                    _merge_folder(source, target, copy=layout == "copy")
+                    continue
+                if target.is_file() and target_dir == folder and name in kept_names:
+                    ctx.log(f"kept the existing {name}; the copy's {name} was not placed")
+                    continue
                 if target.exists() or target.is_symlink():
                     raise DestinationFailed(f"{target} already exists, so the copied {name} cannot be put there.", "Move that file away and run the tool again.")
                 if layout == "copy":

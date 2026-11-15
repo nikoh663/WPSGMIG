@@ -50,6 +50,21 @@ PLUGIN_BACKUP_FOLDERS = (
     "wp-content/backup-db",
     "wp-snapshots",
 )
+# Whose folder each one is, for telling the person which plugins left backups.
+PLUGIN_BACKUP_OWNERS = (
+    ("wp-content/ai1wm-backups", "All-in-One WP Migration"),
+    ("wp-content/updraft", "UpdraftPlus"),
+    ("wp-content/backups-dup-lite", "Duplicator"),
+    ("wp-content/backups-dup-pro", "Duplicator"),
+    ("wp-snapshots", "Duplicator"),
+    ("wp-content/wpvividbackups", "WPvivid"),
+    ("wp-content/backup-db", "WP-DBManager"),
+    ("wp-content/backup-guard", "Backup Guard"),
+    ("wp-content/uploads/backup-guard", "Backup Guard"),
+    ("wp-content/uploads/backupbuddy_backups", "BackupBuddy"),
+    ("wp-content/uploads/wp-staging", "WP Staging"),
+)
+_BACKWPUP_FOLDER = re.compile(r"^wp-content/uploads/backwpup[-/]")
 _ARCHIVE = re.compile(r"\.(zip|tar|tgz|gz|bz2|xz|7z|rar|wpress|daf|sgbp|wpstg|sql)$", re.I)
 _DATABASE_DUMP = re.compile(r"\.sql(\.gz|\.zip|\.bz2)?$", re.I)
 # A stray archive next to WordPress itself must be at least this big to count.
@@ -202,3 +217,44 @@ def find_extras(files: list[RemoteFile], root: str | None) -> list[Extra]:
     for folder, (size, count) in folders.items():
         extras.append(Extra(base + folder, folder + "/", size, count, "a backup folder"))
     return sorted(extras, key=lambda extra: -extra.size)
+
+
+def plugin_backup_owners(files: list[RemoteFile], root: str | None) -> list[str]:
+    """Names of the backup plugins that have a folder on the original site.
+
+    The archives those plugins make are not in the list of remote files, but
+    the small files that sit next to them (such as ``index.php``) are, and
+    that is enough to tell that the folder exists.
+    """
+    found: list[str] = []
+    for entry in files:
+        relative = _relative(entry.path, root)
+        if relative is None:
+            continue
+        owner = next((name for folder, name in PLUGIN_BACKUP_OWNERS if relative.startswith(folder + "/")), None)
+        if owner is None and _BACKWPUP_FOLDER.match(relative):
+            owner = "BackWPup"
+        if owner and owner not in found:
+            found.append(owner)
+    return found
+
+
+def parse_selection(text: str, count: int) -> list[int] | None:
+    """Turn an answer such as ``1, 3-4`` into zero-based positions.
+
+    Returns ``None`` when the answer cannot be understood. An empty answer
+    selects nothing.
+    """
+    chosen: set[int] = set()
+    for piece in re.split(r"[,\s]+", text.strip()):
+        if not piece:
+            continue
+        match = re.fullmatch(r"(\d+)(?:-(\d+))?", piece)
+        if not match:
+            return None
+        first = int(match.group(1))
+        last = int(match.group(2) or first)
+        if first < 1 or last > count or first > last:
+            return None
+        chosen.update(range(first - 1, last))
+    return sorted(chosen)

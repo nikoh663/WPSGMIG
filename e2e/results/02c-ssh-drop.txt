@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.0                                │
+  │  wpmigrate 1.3.1                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -37,33 +37,40 @@
  ◆ Copying your site
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
   ✓ Your site is about 197.6 MB in total: 197.4 MB of files (3,843 files) and
-    272.0 KB of database (12 tables).
+    304.0 KB of database (12 tables).
 
   Where the space goes:
       115.6 MB  WordPress itself
        57.2 MB  uploads (media)
        13.8 MB  themes
         9.5 MB  other files
-  Backups made by plugins such as All-in-One WP Migration, UpdraftPlus and
-  Duplicator are left out automatically, and so are cache and log files.
+
+  About 54.8 MB more on your original site is not part of the copy: backup
+  archives made by backup plugins, plus cache and log files. I can see backup
+  folders from All-in-One WP Migration. These cannot be brought along, so if
+  you need one of those backups, download it from the plugin's own screen.
+  They stay untouched on your original site.
 
   I also found a few things that look like leftover backups:
-       23.8 MB  old-site-backup.zip  (a large archive)
-        5.7 MB  wp-content/backups/  (a backup folder)
-        3.8 MB  wp-content/ai1wm-backups/renamed-export.zip  (a backup archive)
-      976.6 KB  db-dump.sql  (a database dump)
+     1.   23.8 MB  old-site-backup.zip  (a large archive)
+     2.    5.7 MB  wp-content/backups/  (a backup folder)
+     3.    3.8 MB  wp-content/ai1wm-backups/renamed-export.zip
+     4.  976.6 KB  db-dump.sql  (a database dump)
 
-  ? Shall I leave them out of the copy? That saves 34.3 MB.
-  › [Y/n] 
+  ? Would you like any of these copied too?
+    1. No, leave them all out. That saves 34.3 MB.  (default)
+    2. Yes, copy all of them.
+    3. Let me pick which ones to copy.
+  › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ⠸ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  51%  83 MB of 163 MB  · 20 MB/s
+  ⠋ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  21%  34 MB of 163 MB  · 15 MB/s
 
-[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 51%
+[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 21%
 
 [drive] sending SIGHUP to the tool (simulating the SSH connection dropping (terminal closed))
 
 [drive] exit code: 1
 --- the tool's log after the hangup:
-2026-11-15 12:15:06 [download] info: All files are copied over.
-2026-11-15 12:15:07 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt
+2026-11-15 12:41:09 [download] info: All files are copied over.
+2026-11-15 12:41:09 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt

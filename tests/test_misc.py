@@ -213,3 +213,27 @@ class HelperTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BackupChoiceTests(unittest.TestCase):
+    def test_parse_selection(self):
+        from wpmigrate.engine import sizes
+        self.assertEqual(sizes.parse_selection("1, 3-4", 5), [0, 2, 3])
+        self.assertEqual(sizes.parse_selection("", 5), [])
+        self.assertEqual(sizes.parse_selection("2 2", 5), [1])
+        self.assertIsNone(sizes.parse_selection("6", 5))
+        self.assertIsNone(sizes.parse_selection("0", 5))
+        self.assertIsNone(sizes.parse_selection("all", 5))
+
+    def test_plugin_backup_owners(self):
+        from wpmigrate.engine import sizes
+        root = "/var/www/html"
+        files = [sizes.RemoteFile(root + p, 10) for p in (
+            "/wp-includes/version.php",
+            "/wp-content/ai1wm-backups/index.php",
+            "/wp-content/updraft/index.html",
+            "/wp-content/backups-dup-lite/index.php",
+            "/wp-content/uploads/backwpup-abc-backups/.htaccess",
+            "/wp-content/plugins/updraftplus/updraftplus.php",
+        )]
+        self.assertEqual(sizes.plugin_backup_owners(files, root), ["All-in-One WP Migration", "UpdraftPlus", "Duplicator", "BackWPup"])
