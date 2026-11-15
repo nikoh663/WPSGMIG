@@ -113,6 +113,16 @@ def existing_site_address(ctx: Context, folder: Path) -> str | None:
     return cli.option_get(folder, "home")
 
 
+def old_site_plan(ctx: Context, folder: Path) -> tuple[str, Path]:
+    """Where a kept site would go: its new address and its new folder.
+
+    It always moves to the subdomain old.<domain>, whose folder sits next to
+    the domain's own folder, also when the site itself is in a subfolder.
+    """
+    domain = dest.site_domain(ctx.st.get("new_site_url"))
+    return f"https://old.{domain}", dest.old_site_folder_guess(folder, domain)
+
+
 def decide_existing_site(ctx: Context, folder: Path) -> None:
     state = ctx.st
     if state.get("existing_action"):
@@ -124,14 +134,15 @@ def decide_existing_site(ctx: Context, folder: Path) -> None:
     config_text = (folder / "wp-config.php").read_text(encoding="utf-8", errors="replace") if (folder / "wp-config.php").exists() else ""
     database = wpconfig.read_database_settings(config_text) if config_text else None
     domain = dest.site_domain(state.get("new_site_url"))
+    keep_label = f"Keep it: move it to the subdomain old.{domain} and put the copy here."
     ctx.note(f"There is already a WordPress site in {folder}. Its address is {address}.")
     action = ctx.prompter.ask_choice(
         ChoiceQuestion(
             "existing_site",
             "What should happen to the site that is there now?",
             [
-                Choice("remove", "Remove it and replace it with the migrated site."),
-                Choice("keep", f"Keep it: move it to the subdomain old.{domain} and replace the main site with the migrated one."),
+                Choice("remove", "Remove it and put the copy in its place."),
+                Choice("keep", keep_label),
                 Choice("cancel", "Cancel."),
             ],
             default="cancel",
@@ -151,13 +162,13 @@ def decide_existing_site(ctx: Context, folder: Path) -> None:
     state.update(record)
 
 
-def _old_site_folder(ctx: Context, folder: Path, domain: str) -> Path:
+def _old_site_folder(ctx: Context, folder: Path) -> Path:
     state = ctx.st
     if state.get("old_site_folder"):
         return Path(state.get("old_site_folder"))
-    guess = dest.old_site_folder_guess(folder, domain)
+    old_url, guess = old_site_plan(ctx, folder)
     answer = ctx.prompter.ask_text(
-        TextQuestion("old_site_folder", f"The current site will be moved to {guess} so it opens at https://old.{domain}. Press Enter to use that folder, or type another full path", default=str(guess))
+        TextQuestion("old_site_folder", f"The current site will be moved to {guess} so it opens at {old_url}. Press Enter to use that folder, or type another full path", default=str(guess))
     ).strip()
     target = Path(os.path.normpath(os.path.expanduser(answer or str(guess))))
     return target
@@ -169,9 +180,9 @@ def keep_existing_site(ctx: Context, folder: Path) -> None:
     if state.destructive_done("old_site_configured"):
         return
     domain = dest.site_domain(state.get("new_site_url"))
-    old_url = f"https://old.{domain}"
+    old_url, _ = old_site_plan(ctx, folder)
     home = ctx.system.home().resolve()
-    target = _old_site_folder(ctx, folder, domain)
+    target = _old_site_folder(ctx, folder)
     while not state.destructive_done("old_site_moved") and not state.destructive_started("old_site_moved"):
         if not dest.is_inside(target, home) or dest.is_inside(target, folder) or dest.is_inside(folder, target):
             ctx.warn(f"{target} cannot be used: it must be inside your home folder and separate from {folder}.")
@@ -243,6 +254,14 @@ def keep_existing_site(ctx: Context, folder: Path) -> None:
         state.record_destructive("old_site_moved", source=str(folder), target=str(target), entries=moved)
         ctx.info(f"Moved the existing site to {target}.")
 
+    # The old site now sits at the top of its subdomain, wherever it was before.
+    old_htaccess = target / ".htaccess"
+    if old_htaccess.is_file():
+        text = old_htaccess.read_text(encoding="utf-8", errors="replace")
+        fixed = dest.set_rewrite_base(text, "/")
+        if fixed != text:
+            LocalSystem.write_file(old_htaccess, fixed, 0o644)
+
     cli = wp_cli(ctx)
     old_address = state.get("existing_site_url") or ""
     steps = [
@@ -276,7 +295,7 @@ def keep_existing_site(ctx: Context, folder: Path) -> None:
     if answered:
         ctx.info(f"{old_url} answers ({detail}).")
     else:
-        ctx.warn(f"{old_url} does not answer yet ({detail}). That is normal until the subdomain exists and its DNS has updated.")
+        ctx.warn(f"{old_url} does not answer yet ({detail})." + " That is normal until the subdomain exists and its DNS has updated.")
     state.record_destructive("old_site_configured", folder=str(target), url=old_url)
 
 

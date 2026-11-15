@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.2.0                                │
+  │  wpmigrate 1.3.0                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -53,7 +53,7 @@ Please finish these steps on your original site yourself:
 
 Migration Token (copy all of it):
 
-MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAywPfyzazE2proprFNGKC2WgfUqNhnV64F06GVYgpvxaJAzvUQW6rHYvz3lWQnqgZKCDbpn9n5bmZ7m+07KSxzaIkpxT1HCnBLofomubsmS0FOVjAY5HYg6XeQMgrRlrCMgPNzFunQmr/s3FZasXfOmYOC30qUkptFRFiu2xiHRbcslme9xvdEid/FPBvswY1kuD1KhD4TKHcrSgP15tzi/OfOnQhGTKCdh3SH+L7FXgR+LIUsvH2ZUVnPi/UivshhtCPlsstj0u7QeF5TEXc+5d0E+Wxp0TBULH/1w5tOtyEsdGrhELlS7v0fbEjraa/mUFh+7oU7S5HMqi2p39gxqABl5M2Qu81YQTBCa0Lo0/NwtB6mICZFHsTg92uSReYqIQpwh6+P/rTMOL9B66ucpSnCvge/WtJwAexqOSjquRlQbsak5GdTLgXctjWv2SH9cDhDuYJ944PK63vZkwF2bwcs7lZtrEf8q2cC8eNVCS6kkSLPo1aeQ21GFpyLpgTAgMBAAE=
+MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAruidii0vqrtrOONFOy6emYOtahjg4rNWnDj/aDTvMrtRrGbyr6MFoDBT2Tv1XEj5tC/M5iDxoyanMTDrY4q+TadFBSIaP3vK85mrLyH6hINVETg5etpUBTRexnHiQFPdhinjRLoaK/+Ra19AfNAEv+eCHG9RpLXsj8KV+uw5SDdaRBcoApUZo2X6ZUADhGgQfBTPA5/bDrMwBIbTfYCE8gbBCTFdhnnTYJ6V4pANbmAO5i/nFBChPGndau7TQibgl9q45AbJBW+x+Dtt7sv4MYx9ZA8mSzsKhTfLyPOInWZL5WrWFZqGLCs5bpcR6ueB4pFLvnlASx0km3WJgqWTBw1miDk8vHvsrjQsUkvupbWPfUEhfLrjAssHUvj+y6euzm2oZf5iS1yApebQiN+/+zEjMKUnBRqtspTuAxIbkOYohplkARLM1DGlqJRhPleN1zbxO7Nacp+907DX4xqT5hAGixytMCr0+bzz0Ho0z4s/llWAPAIqFxZ7tZw2AbKbAgMBAAE=
 ──────────────────────────────────────────────────────────────────────────────
 
   ? Press Enter when the page says "Client authorized". If it asked for a
@@ -78,8 +78,18 @@ saved
 
  ◆ Copying your site
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
-  ✓ Copying files  163 MB · 3,839 files · 12s
-  ✓ The database is copied over (117.6 KB).
+  ✓ Your site is about 163.3 MB in total: 163.0 MB of files (3,839 files) and
+    272.0 KB of database (12 tables).
+
+  Where the space goes:
+       90.8 MB  WordPress itself
+       57.2 MB  uploads (media)
+       13.8 MB  themes
+        1.2 MB  plugins
+  Backups made by plugins such as All-in-One WP Migration, UpdraftPlus and
+  Duplicator are left out automatically, and so are cache and log files.
+  ✓ Copying files  163 MB · 3,839 files · 13s
+  ✓ The database is copied over (118.0 KB).
 
  ◆ Setting up its new home
 
@@ -126,7 +136,7 @@ saved
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (36s)
+  ✓ All done! Your site has been copied.  (35s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.

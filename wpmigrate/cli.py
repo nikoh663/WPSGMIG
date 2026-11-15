@@ -179,7 +179,7 @@ def build_parser() -> argparse.ArgumentParser:
     add("--folder", metavar="PATH", help="folder to install the copied site in (default: the current folder)")
     add("--existing-site", choices=("remove", "keep", "cancel"), help="what to do with a WordPress site already in that folder")
     add("--confirm-domain", metavar="DOMAIN", help="confirms removing an existing site (must match its domain)")
-    add("--old-site-folder", metavar="PATH", help="folder for the kept old site (default: ../../old.<domain>/public_html)")
+    add("--old-site-folder", metavar="PATH", help="folder for the kept old site (default: old.<domain>/public_html next to the domain folder, also for a site in a subfolder)")
     add("--subdomain-ready", action="store_true", default=None, help="the old.<domain> subdomain has been created already")
     add("--db-host", metavar="HOST", help="database host for the copied site (default: localhost)")
     add("--db-name", metavar="NAME", help="database name for the copied site")
@@ -187,6 +187,7 @@ def build_parser() -> argparse.ArgumentParser:
     add("--replace-tables", action="store_true", default=None, help="confirm replacing tables in that database")
     add("--reuse-old-db", choices=("yes", "no"), help="use the removed site's database details")
     add("--other-files", choices=("backup", "remove"), help="what to do with non-WordPress files in the folder")
+    add("--skip-backups", choices=("yes", "no"), help="leave leftover backup files out of the copy (default when not asking: yes)")
     add("--cleanup-source", choices=("yes", "no"), help="remove the plugin and this server's access from the source at the end (default: yes)")
     add("--manual", action="store_true", help="do the source steps (plugin and authorization) yourself in the browser")
     add("--php", metavar="PATH", help="PHP program to use (default: the newest suitable one found)")
@@ -205,7 +206,7 @@ _ENV_KEYS = {
     "existing_site": "WPMIGRATE_EXISTING_SITE", "confirm_domain": "WPMIGRATE_CONFIRM_DOMAIN", "old_site_folder": "WPMIGRATE_OLD_SITE_FOLDER",
     "db_host": "WPMIGRATE_DB_HOST", "db_name": "WPMIGRATE_DB_NAME", "db_user": "WPMIGRATE_DB_USER", "other_files": "WPMIGRATE_OTHER_FILES",
     "cleanup_source": "WPMIGRATE_CLEANUP_SOURCE", "php": "WPMIGRATE_PHP", "reprint_phar": "WPMIGRATE_REPRINT_PHAR",
-    "user_agent": "WPMIGRATE_USER_AGENT", "file_layout": "WPMIGRATE_FILE_LAYOUT", "reuse_old_db": "WPMIGRATE_REUSE_OLD_DB", "resume": "WPMIGRATE_RESUME",
+    "user_agent": "WPMIGRATE_USER_AGENT", "file_layout": "WPMIGRATE_FILE_LAYOUT", "reuse_old_db": "WPMIGRATE_REUSE_OLD_DB", "skip_backups": "WPMIGRATE_SKIP_BACKUPS", "resume": "WPMIGRATE_RESUME",
 }
 _ENV_FLAGS = {"allow_http": "WPMIGRATE_ALLOW_HTTP", "keep_downloads": "WPMIGRATE_KEEP_DOWNLOADS", "manual": "WPMIGRATE_MANUAL",
               "non_interactive": "WPMIGRATE_NON_INTERACTIVE", "replace_tables": "WPMIGRATE_REPLACE_TABLES", "subdomain_ready": "WPMIGRATE_SUBDOMAIN_READY"}
@@ -240,11 +241,14 @@ def presets_from(args: argparse.Namespace) -> dict[str, Any]:
         presets["reuse_existing_db"] = args.reuse_old_db == "yes"
     if args.cleanup_source:
         presets["cleanup_source"] = args.cleanup_source == "yes"
+    if args.skip_backups:
+        presets["skip_extra_files"] = args.skip_backups == "yes"
     if args.resume:
         presets["resume"] = args.resume == "yes"
     if args.non_interactive:
         presets.setdefault("create_dest_folder", True)
         presets.setdefault("copy_again", True)
+        presets.setdefault("skip_extra_files", True)
         presets.setdefault("use_subfolder_address", True)
         presets.setdefault("remove_tool_files", False)
     return presets

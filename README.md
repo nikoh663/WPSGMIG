@@ -39,7 +39,15 @@ extensions (all common on hosting). It runs as your normal hosting user and does
    already there.
 5. Authorizes this server on the old site with a Migration Token, or with a
    connection token where the site uses those.
-6. Downloads the files and the database. It resumes if it is interrupted.
+6. Measures the site and shows the size of the files and of the database
+   separately, then downloads both. It resumes if it is interrupted.
+   - Backup archives made by All-in-One WP Migration, UpdraftPlus, Duplicator,
+     BackWPup, WPvivid, BackupBuddy and similar plugins are never copied, and
+     neither are cache and log files.
+   - It also looks for other leftover backups: backup folders, database dumps
+     and large archives next to WordPress. It lists them with their sizes and
+     asks before leaving them out (`--skip-backups yes|no`). Nothing is
+     deleted on the old site.
 7. Sets up the destination:
    - which folder (press Enter for the current one, or type a subfolder such as
      `blog`);

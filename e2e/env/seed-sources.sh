@@ -29,3 +29,16 @@ for s in a b; do
   docker exec -u www-data $c sh -c "head -c 60000000 /dev/urandom > wp-content/uploads/large-video.bin"
 done
 echo seeded
+# Leftover backups on source A, for the size report and the "leave them out" question.
+# The first group is skipped by the transfer engine itself; the second group is
+# what the tool should find and offer to leave out.
+docker exec wpm-src-a sh -c 'cd /var/www/html/wp-content && mkdir -p ai1wm-backups updraft backups-dup-lite cache/page backups \
+  && head -c 30000000 /dev/urandom > ai1wm-backups/src-a.test-20261101-120000-abc.wpress \
+  && head -c 12000000 /dev/urandom > updraft/backup_2026-11-01-1200_Site_abc123-uploads.zip \
+  && head -c 8000000 /dev/urandom > backups-dup-lite/20261101_site_abc_archive.zip \
+  && head -c 1500000 /dev/urandom > debug.log \
+  && head -c 25000000 /dev/urandom > ../old-site-backup.zip \
+  && head -c 6000000 /dev/urandom > backups/manual-backup.tar.gz \
+  && head -c 4000000 /dev/urandom > ai1wm-backups/renamed-export.zip \
+  && head -c 1000000 /dev/urandom > ../db-dump.sql \
+  && chown -R www-data:www-data . ../old-site-backup.zip ../db-dump.sql'

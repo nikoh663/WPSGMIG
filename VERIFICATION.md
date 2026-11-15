@@ -1,6 +1,6 @@
 # Verification
 
-Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.2.0 (new interface, friendlier wording and address detection). The
+Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.3.0. The
 tool ran as an unprivileged user (`wpuser`) inside a pseudo-terminal, typing
 answers the way a person would. The full output of each run is in
 `e2e/results/`, followed by independent checks made with curl, WP-CLI and SQL.
@@ -27,11 +27,13 @@ answers the way a person would. The full output of each run is in
 | 9 | Subfolder chosen at the folder question | `09-subfolder.txt` | Pass. `blog` creates the folder and suggests https://dest.test/blog. The database address is rewritten, the `.htaccess` rules are adjusted, and the home page and a page load under /blog/. |
 | 10 | Started inside a subfolder (`<domain>/public_html/new`), Enter pressed for every default | `12-started-in-subfolder.txt` | Pass. The tool suggests https://dest.test/new as the address. The database address and the `.htaccess` rules use /new, and the home page and a page load under /new/. Added after a real run kept the old address. |
 | 11 | Same site copied again into the same folder after a finished copy | `13-copy-again.txt` | Pass. The tool asks whether to copy again from the start, then treats the earlier copy as an existing site: remove needs the domain typed, and its database details are offered again. The site loads under /new/. |
+| 12 | Size report and leftover backups | `01-clean.txt`, `14-keep-backups.txt` | Pass. The test site has backups from All-in-One WP Migration, UpdraftPlus and Duplicator (never copied), plus a 25 MB zip, a backup folder, a renamed export and a database dump. The tool shows files and database sizes, lists the four leftovers (34.3 MB) and asks. With yes, none of them reach the copy. With no, all four are copied. |
+| 13 | Existing site in a subfolder (`public_html/new`), "keep" | `15-keep-in-subfolder.txt` | Pass. The old site moves to `<base>/old.dest.test/public_html` (next to the domain's folder, not inside it), boots under WP-CLI at https://old.dest.test with its `.htaccess` reset to `/`, and the copy loads at https://dest.test/new. Added after a real run offered a folder nested inside the domain's folder. |
 
 Extra runs for the layout decision: `10-layout-link.txt` (symlinks: 403,
 removed from the tool) and `11-layout-copy.txt` (copy: works, no symlinks).
 
-Unit tests: 56 pass on Python 3.13 and on Python 3.10.
+Unit tests: 57 pass on Python 3.13 and on Python 3.10.
 
 ## Bugs found and fixed during testing
 

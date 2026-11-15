@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from wpmigrate import constants
+from wpmigrate.engine import sizes
 from wpmigrate.engine.context import Context
 from wpmigrate.engine.destination import human_size
 from wpmigrate.engine.errors import AuthorizationNeeded, TransferFailed
+from wpmigrate.engine.prompts import ConfirmQuestion
 from wpmigrate.engine.reprint import ReprintResult, ReprintRunner
 from wpmigrate.engine.stages_source import reprint_runner
 from wpmigrate.engine.system import LocalSystem
@@ -56,6 +58,62 @@ def _space_check(ctx: Context, runner: ReprintRunner):
     return check
 
 
+def _measure(ctx: Context, runner: ReprintRunner, credentials: list[str]) -> None:
+    """Show how big the site is, and offer to leave leftover backups behind."""
+    state = ctx.st
+    ctx.info("Measuring your site...")
+    result = runner.run_to_completion(runner.base_args("files-index"), stage="download", secret_args=credentials, progress_label="Measuring your site")
+    if result.exit_code != 0:
+        _fail(ctx, result, "Measuring the files")
+    tables_run = runner.run_to_completion(runner.base_args("db-index"), stage="download", secret_args=credentials)
+    indexes = sorted(ctx.p.reprint_state.glob("remotes/*/pull/remote-index.next.jsonl"), key=lambda path: path.stat().st_mtime)
+    files = sizes.read_file_index(indexes[-1]) if indexes else []
+    if not files:
+        ctx.log("no remote file list found; skipping the size report")
+        return
+    root = sizes.find_site_root(files)
+    summary = sizes.summarize_files(files, root)
+    database = sizes.read_database_tables(ctx.p.reprint_state / "db-tables.jsonl") if tables_run.exit_code == 0 else {"bytes": 0, "count": 0, "largest": []}
+    state.update({"source_files_bytes": summary["bytes"], "source_files_count": summary["count"], "source_db_bytes": database["bytes"], "source_db_tables": database["count"]})
+    if database["count"]:
+        ctx.info(
+            f"Your site is about {human_size(summary['bytes'] + database['bytes'])} in total: "
+            f"{human_size(summary['bytes'])} of files ({summary['count']:,} files) and {human_size(database['bytes'])} of database ({database['count']:,} tables)."
+        )
+    else:
+        ctx.info(f"Your site has {human_size(summary['bytes'])} of files ({summary['count']:,} files). The database size could not be read.")
+    lines = ["Where the space goes:"]
+    lines += [f"  {human_size(size):>10}  {name}" for name, size in summary["parts"][:4] if size]
+    lines += [f"  {human_size(size):>10}  database table {name}" for name, size in database["largest"][:2] if size >= sizes.MEGABYTE]
+    lines.append("Backups made by plugins such as All-in-One WP Migration, UpdraftPlus and Duplicator are left out automatically, and so are cache and log files.")
+    ctx.note("\n".join(lines))
+
+    extras = sizes.find_extras(files, root)
+    if not extras:
+        state.update({"excluded_paths": [], "excluded_bytes": 0, "excluded_count": 0})
+        return
+    total = sum(extra.size for extra in extras)
+    count = sum(extra.files for extra in extras)
+    listing = [f"I also found {'something' if len(extras) == 1 else 'a few things'} that {'looks like a leftover backup' if len(extras) == 1 else 'look like leftover backups'}:"]
+    listing += [f"  {human_size(extra.size):>10}  {extra.shown}  ({extra.reason})" for extra in extras[:8]]
+    if len(extras) > 8:
+        listing.append(f"  ... and {len(extras) - 8} more")
+    ctx.note("\n".join(listing))
+    skip = ctx.prompter.confirm(ConfirmQuestion(
+        "skip_extra_files",
+        f"Shall I leave {'it' if count == 1 else 'them'} out of the copy? That saves {human_size(total)}.",
+        default=True,
+    ))
+    if skip:
+        # Keep the command line a sensible length: the biggest 200 are plenty.
+        chosen = extras[:200]
+        state.update({"excluded_paths": [extra.path for extra in chosen], "excluded_bytes": sum(extra.size for extra in chosen), "excluded_count": sum(extra.files for extra in chosen)})
+        ctx.info(f"Leaving out {human_size(sum(extra.size for extra in chosen))} of leftover backups. Nothing is deleted on your original site.")
+    else:
+        state.update({"excluded_paths": [], "excluded_bytes": 0, "excluded_count": 0})
+        ctx.info("Okay, everything will be copied.")
+
+
 def stage_download(ctx: Context) -> None:
     """Preflight, then download the files and the database (no database needed yet)."""
     runner = reprint_runner(ctx)
@@ -93,6 +151,12 @@ def stage_download(ctx: Context) -> None:
         state.set("download", progress)
         ctx.info(f"Found WordPress {source.get('wordpressVersion')} running on PHP {php_info.get('version')}.")
 
+    if not progress.get("measured"):
+        _measure(ctx, runner, credentials)
+        progress["measured"] = True
+        state.set("download", progress)
+    excludes = [f"--exclude={path}" for path in state.get("excluded_paths") or []]
+
     rewrite = []
     source_home = state.get("source_home_url") or state.get("source_url")
     new_url = state.get("new_site_url")
@@ -102,7 +166,7 @@ def stage_download(ctx: Context) -> None:
     if not progress.get("files"):
         ctx.info("Copying the files...")
         runner.bytes_total_check = _space_check(ctx, runner)
-        result = runner.run_to_completion([*runner.base_args("files-pull"), *rewrite], stage="download", secret_args=credentials, progress_label="Copying files")
+        result = runner.run_to_completion([*runner.base_args("files-pull"), *rewrite, *excludes], stage="download", secret_args=credentials, progress_label="Copying files")
         runner.bytes_total_check = None
         problem = state.get("disk_space_problem")
         if problem:

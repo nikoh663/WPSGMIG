@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.2.0                                │
+  │  wpmigrate 1.3.0                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -36,13 +36,34 @@
 
  ◆ Copying your site
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
-  ⠧ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  52%  85 MB of 163 MB  · 20 MB/s
+  ✓ Your site is about 197.6 MB in total: 197.4 MB of files (3,843 files) and
+    272.0 KB of database (12 tables).
 
-[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 52%
+  Where the space goes:
+      115.6 MB  WordPress itself
+       57.2 MB  uploads (media)
+       13.8 MB  themes
+        9.5 MB  other files
+  Backups made by plugins such as All-in-One WP Migration, UpdraftPlus and
+  Duplicator are left out automatically, and so are cache and log files.
+
+  I also found a few things that look like leftover backups:
+       23.8 MB  old-site-backup.zip  (a large archive)
+        5.7 MB  wp-content/backups/  (a backup folder)
+        3.8 MB  wp-content/ai1wm-backups/renamed-export.zip  (a backup archive)
+      976.6 KB  db-dump.sql  (a database dump)
+
+  ? Shall I leave them out of the copy? That saves 34.3 MB.
+  › [Y/n] 
+  ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
+    original site.
+  ⠸ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  51%  83 MB of 163 MB  · 20 MB/s
+
+[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 51%
 
 [drive] sending SIGHUP to the tool (simulating the SSH connection dropping (terminal closed))
 
 [drive] exit code: 1
 --- the tool's log after the hangup:
-2026-11-15 11:29:17 [download] info: All files are copied over.
-2026-11-15 11:29:17 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt
+2026-11-15 12:15:06 [download] info: All files are copied over.
+2026-11-15 12:15:07 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt

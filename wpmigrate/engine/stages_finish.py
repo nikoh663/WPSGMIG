@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from wpmigrate.engine.destination import site_domain
+from wpmigrate.engine.destination import human_size, site_domain
 from wpmigrate.engine.context import Context
 from wpmigrate.engine.errors import MigrationError, SourceStepFailed
 from wpmigrate.engine.events import Status
@@ -98,6 +98,8 @@ def stage_summary(ctx: Context) -> None:
         lines.append(f"It is live now. Open it: {new_url}")
     else:
         lines.append(f"It does not answer at {new_url} yet. Make sure the domain {site_domain(new_url)} points to this hosting account.")
+    if state.get("excluded_count"):
+        lines.append(f"Leftover backups were not copied ({state.get('excluded_count'):,} file(s), {human_size(state.get('excluded_bytes') or 0)}). They are still on your original site.")
     lines.append("Have a look around: the home page, a few posts and pages, images, the admin login, contact forms, and any shop checkout.")
     lines.append("Good to know: the copy is a real, working site. It can send e-mails (to customers too), take payments and run scheduled tasks. Switch off anything that must not happen twice.")
     disabled = state.get("disabled_plugins") or []

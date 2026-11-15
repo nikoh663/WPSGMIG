@@ -105,6 +105,10 @@ class HelperTests(unittest.TestCase):
             destination.old_site_folder_guess(Path("/home/u/www/example.com/public_html"), "example.com"),
             Path("/home/u/www/old.example.com/public_html"),
         )
+        self.assertEqual(
+            destination.old_site_folder_guess(Path("/home/u/www/example.com/public_html/new"), "example.com"),
+            Path("/home/u/www/old.example.com/public_html"),
+        )
 
     def test_split_entries(self):
         with TemporaryDirectory() as tmp:
@@ -153,6 +157,49 @@ class HelperTests(unittest.TestCase):
         self.assertIn("Run it again.", text)
         self.assertEqual(format_bytes(480 * 1048576), "480 MB")
         self.assertEqual(format_duration(125), "2m 05s")
+
+    def test_sizes_and_leftover_backups(self):
+        import json
+        from base64 import b64encode
+        from wpmigrate.engine import sizes
+        root = "/srv/site"
+        listed = {
+            "wp-includes/version.php": 900,
+            "wp-content/uploads/2026/photo.jpg": 4_000_000,
+            "wp-content/uploads/2026/catalogue.zip": 50_000_000,  # a real download: keep
+            "wp-content/plugins/shop/shop.php": 2_000,
+            "old-site-backup.zip": 25_000_000,
+            "small.zip": 1_000,
+            "dump.sql": 300,
+            "wp-content/mysql.sql.gz": 700,
+            "wp-content/ai1wm-backups/renamed.zip": 9_000,
+            "wp-content/ai1wm-backups/index.php": 10,
+            "wp-content/backups/a/site.tar": 6_000,
+            "wp-content/backups/b.txt": 4,
+            "wp-content/backupwordpress-abc123-backups/x.zip": 77,
+        }
+        with TemporaryDirectory() as tmp:
+            index = Path(tmp) / "index.jsonl"
+            lines = [json.dumps({"path": b64encode(f"{root}/{name}".encode()).decode(), "size": size, "type": "file"}) for name, size in listed.items()]
+            lines += ["not json", json.dumps({"path": "%%%", "size": 1, "type": "file"}), json.dumps({"path": b64encode(b"/srv/site/dir").decode(), "type": "dir"})]
+            index.write_text("\n".join(lines))
+            files = sizes.read_file_index(index)
+            tables = Path(tmp) / "db-tables.jsonl"
+            tables.write_text('{"name":"wp_posts","data_bytes":5000}\n{"name":"wp_options","data_bytes":100}\n')
+            database = sizes.read_database_tables(tables)
+        self.assertEqual(len(files), len(listed))
+        self.assertEqual(sizes.find_site_root(files), root)
+        summary = sizes.summarize_files(files, root)
+        self.assertEqual(summary["bytes"], sum(listed.values()))
+        self.assertEqual(summary["parts"][0][0], "uploads (media)")
+        self.assertEqual((database["bytes"], database["count"], database["largest"][0][0]), (5100, 2, "wp_posts"))
+        extras = {extra.shown: extra for extra in sizes.find_extras(files, root)}
+        self.assertEqual(
+            sorted(extras),
+            ["dump.sql", "old-site-backup.zip", "wp-content/ai1wm-backups/renamed.zip", "wp-content/backups/", "wp-content/backupwordpress-abc123-backups/", "wp-content/mysql.sql.gz"],
+        )
+        self.assertEqual(extras["wp-content/backups/"].path, "/srv/site/wp-content/backups")
+        self.assertEqual((extras["wp-content/backups/"].size, extras["wp-content/backups/"].files), (6_004, 2))
 
     def test_redactor(self):
         redact = Redactor()

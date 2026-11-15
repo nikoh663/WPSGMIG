@@ -64,7 +64,16 @@ def site_domain(site_url: str) -> str:
 
 
 def old_site_folder_guess(chosen: Path, domain: str) -> Path:
-    """``<chosen>/../../old.<domain>/public_html``, resolved."""
+    """Folder of the subdomain old.<domain>, next to the domain's own folder.
+
+    With the layout ``<base>/<domain>/<web root>[/sub/folder]`` this is
+    ``<base>/old.<domain>/<web root>``, also when ``chosen`` is a subfolder.
+    Without a recognisable layout it falls back to two levels up.
+    """
+    parts = Path(os.path.normpath(chosen)).parts
+    for index in range(len(parts) - 1, 1, -1):
+        if parts[index] in WEB_ROOT_NAMES and _DOMAIN_NAME.match(parts[index - 1]):
+            return Path(*parts[: index - 1]) / f"old.{domain}" / parts[index]
     return Path(os.path.normpath(chosen / ".." / ".." / f"old.{domain}" / "public_html"))
 
 

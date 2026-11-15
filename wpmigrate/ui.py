@@ -322,8 +322,13 @@ class Renderer:
         elif status == Status.INFO:
             if event.details.get("kind") == "note":
                 t.write("")
-                for line in t.wrap(event.message, first="  ", rest="  "):
-                    t.write(line)
+                for paragraph in event.message.splitlines():
+                    if paragraph.startswith("  "):
+                        # A table row: keep it on one line.
+                        t.write("  " + paragraph[: t.columns - 3])
+                    else:
+                        for line in t.wrap(paragraph, first="  ", rest="  "):
+                            t.write(line)
             elif event.message.endswith("..."):
                 text = event.message[:-3]
                 if t.is_tty:
