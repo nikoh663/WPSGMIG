@@ -3,7 +3,7 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
 
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.1                                │
+  │  wpmigrate 1.3.3                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -24,8 +24,8 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   Taking a look at your original site...
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
   Measuring your site...
-  ✓ Your site is about 197.6 MB in total: 197.4 MB of files (3,843 files) and
-    304.0 KB of database (12 tables).
+  ✓ Your site is about 197.7 MB in total: 197.4 MB of files (3,843 files) and
+    320.0 KB of database (13 tables).
 
   Where the space goes:
       115.6 MB  WordPress itself
@@ -47,11 +47,11 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
   Copying the files...
-    1.3% Copying files: 121 of 3,839 files, 2.2 of 163.0 MB
+    1.3% Copying files: 112 of 3,839 files, 2.1 of 163.0 MB
   100.0% Copying files: 3,839 of 3,839 files, 163.0 of 163.0 MB
   ✓ All files are copied over.
   Copying the database...
-  ✓ The database is copied over (196.0 KB).
+  ✓ The database is copied over (199.5 KB).
 
  ◆ Setting up its new home
 
@@ -61,10 +61,12 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
 
  ◆ Putting everything in place
   Importing the database and changing the address to https://src-a.test/new...
-  100.0% Importing the database: 41 database statements, 0.2 of 0.2 MB
+  100.0% Importing the database: 44 database statements, 0.2 of 0.2 MB
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html/new.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ Adjusted .htaccess so links work under /new.
+  Changing the address to https://src-a.test/new...
+  ✓ The address is now https://src-a.test/new everywhere in the database.
   ✓ WordPress starts up fine in its new home.
   Opening https://src-a.test/new to check it...
   ! https://src-a.test/new answered with an error (HTTP 404). Open it in a
@@ -98,4 +100,14 @@ home: https://src-a.test/new
 Reviews page: <!-- wp:paragraph --><p>See <a href="https://src-a.test/new/sample-page/">sample</a> and <a href="https://src-a.test/new/reviews/">reviews</a> and //src-a.test/new/x/ and src-a.test/new/plain/</p><!-- /wp:paragraph -->
 menu link: https://src-a.test/new/reviews/
 rows with /new/new: 0
+table without a primary key: see https://src-a.test/new/reviews/ | a:1:{s:1:"u";s:31:"https://src-a.test/new/reviews/";}
+guid of the Reviews page: https://src-a.test/new/reviews/
+values anywhere with the temporary address: 0
 rows with the temporary address: 0
+--- timing from the log
+2026-11-15 21:16:07 [deploy] info: Changing the address to https://src-a.test/new...
+2026-11-15 21:16:08 search-replace https://wpmigrate-new-address.invalid -> https://src-a.test/new: Success: Made 19 replacements.
+2026-11-15 21:16:09 search-replace https:\/\/wpmigrate-new-address.invalid -> https:\/\/src-a.test\/new: Success: Made 0 replacements.
+2026-11-15 21:16:09 search-replace wpmigrate-new-address.invalid -> src-a.test/new: Success: Made 1 replacement.
+2026-11-15 21:16:09 tables without a primary key: changed 2
+2026-11-15 21:16:09 [deploy] info: The address is now https://src-a.test/new everywhere in the database.

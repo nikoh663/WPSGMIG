@@ -232,3 +232,70 @@ def address_rewrite_steps(source_api_url: str, new_url: str) -> list[list[str]]:
         [arg for origin in origins for arg in ("--rewrite-url", origin, TEMPORARY_ADDRESS)],
         ["--rewrite-url", TEMPORARY_ADDRESS, new_url],
     ]
+
+
+def temporary_address_replacements(new_url: str) -> list[tuple[str, str]]:
+    """Plain search and replace pairs that turn the temporary address into the new one.
+
+    The order matters: full addresses first, then the JSON-escaped form, then
+    the bare host name for anything else (protocol-relative or encoded links).
+    """
+    new_url = new_url.rstrip("/")
+    parts = urllib.parse.urlsplit(new_url)
+    temporary_host = urllib.parse.urlsplit(TEMPORARY_ADDRESS).netloc
+    return [
+        (TEMPORARY_ADDRESS, new_url),
+        (TEMPORARY_ADDRESS.replace("/", "\\/"), new_url.replace("/", "\\/")),
+        (temporary_host, parts.netloc + parts.path),
+    ]
+
+
+# WP-CLI's search-replace leaves tables without a primary key alone. This
+# fixed snippet (run with "wp eval-file" from the private folder, never
+# built from downloaded content)
+# does the same replacement there: each distinct value that contains the
+# temporary address is rewritten, keeping serialized data valid, and written
+# back with an exact-match UPDATE. The pairs arrive as a JSON argument.
+NO_PRIMARY_KEY_REPLACE = r"""
+global $wpdb;
+$pairs = json_decode($args[0], true);
+$needle = $args[1];
+$fix = function ($value) use (&$fix, $pairs) {
+    if (is_string($value)) {
+        $data = @unserialize($value, array('allowed_classes' => false));
+        if ($data !== false || $value === 'b:0;') {
+            return serialize($fix($data));
+        }
+        foreach ($pairs as $pair) { $value = str_replace($pair[0], $pair[1], $value); }
+        return $value;
+    }
+    if (is_array($value)) {
+        $out = array();
+        foreach ($value as $key => $item) { $out[$key] = $fix($item); }
+        return $out;
+    }
+    if (is_object($value)) {
+        foreach (get_object_vars($value) as $key => $item) { $value->$key = $fix($item); }
+    }
+    return $value;
+};
+$changed = 0;
+foreach ($wpdb->get_col('SHOW TABLES') as $table) {
+    $columns = $wpdb->get_results("SHOW COLUMNS FROM `$table`");
+    $has_key = false;
+    foreach ($columns as $column) { if ($column->Key === 'PRI') { $has_key = true; } }
+    if ($has_key) { continue; }
+    foreach ($columns as $column) {
+        if (!preg_match('/char|text|blob|json/i', $column->Type)) { continue; }
+        $name = $column->Field;
+        $values = $wpdb->get_col($wpdb->prepare("SELECT DISTINCT `$name` FROM `$table` WHERE `$name` LIKE %s", '%' . $wpdb->esc_like($needle) . '%'));
+        foreach ($values as $old) {
+            $new = $fix($old);
+            if ($new !== $old) {
+                $changed += (int) $wpdb->query($wpdb->prepare("UPDATE `$table` SET `$name` = %s WHERE BINARY `$name` = %s", $new, $old));
+            }
+        }
+    }
+}
+echo "changed $changed\n";
+"""

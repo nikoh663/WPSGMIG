@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import secrets as random_tokens
@@ -492,16 +493,66 @@ def _apply_database(ctx: Context, runner: ReprintRunner) -> None:
             )
         state.set("db_applied", True)
         state.record_destructive("tables_replaced", database=database["name"], prefix=database["table_prefix"])
-    if len(steps) > 1 and not state.get("db_address_finished"):
-        # Second half of a move into a subfolder of the same domain (see address_rewrite_steps).
-        result = runner.run_to_completion([*runner.base_args("db-rewrite-urls", fs_root=False), *target, *steps[1]], stage="deploy", secret_args=secret, progress_label="Updating the address")
+    state.set("address_two_steps", len(steps) > 1)
+
+
+def _finish_address(ctx: Context, runner: ReprintRunner, folder: Path) -> None:
+    """Second half of a move into a subfolder of the same domain (see address_rewrite_steps).
+
+    Uses WP-CLI's search-replace, which takes seconds. Only when WP-CLI cannot
+    be used does it fall back to the transfer engine, which is much slower.
+    """
+    state = ctx.st
+    if not state.get("address_two_steps") or state.get("db_address_finished"):
+        return
+    new_url = state.get("new_site_url").rstrip("/")
+    pairs = dest.temporary_address_replacements(new_url)
+    ctx.info(f"Changing the address to {new_url}...")
+    try:
+        cli = wp_cli(ctx)
+    except DestinationFailed as error:
+        ctx.log(f"WP-CLI is not available ({error}); using the slower way")
+        cli = None
+    if cli is not None:
+        problem = None
+        for old, new in pairs:
+            result = cli.run(folder, ["search-replace", old, new, "--all-tables", "--report-changed-only"], timeout=3600)
+            if result.returncode != 0:
+                problem = (result.stderr or result.stdout).strip() or "no details"
+                break
+            ctx.log(f"search-replace {old} -> {new}: {' '.join(result.stdout.strip().splitlines()[-1:])}")
+        if problem is None:
+            needle = urllib.parse.urlsplit(dest.TEMPORARY_ADDRESS).netloc
+            # eval-file (not eval) because only eval-file passes arguments to the code.
+            script = ctx.p.tools / "replace-in-tables-without-key.php"
+            LocalSystem.write_private_file(script, "<?php\n" + dest.NO_PRIMARY_KEY_REPLACE)
+            result = cli.run(folder, ["eval-file", str(script), json.dumps(pairs), needle], timeout=3600)
+            script.unlink(missing_ok=True)
+            if result.returncode != 0:
+                problem = (result.stderr or result.stdout).strip() or "no details"
+            else:
+                ctx.log(f"tables without a primary key: {result.stdout.strip()}")
+        if problem is not None:
+            ctx.log(f"WP-CLI could not change the address ({problem}); using the slower way")
+            cli = None
+    if cli is None:
+        database = state.get("dest_db")
+        host, port = dest.split_host_port(database["host"])
+        target = ["--target-engine=mysql", f"--target-host={host}", f"--target-user={database['user']}", f"--target-db={database['name']}"]
+        if port:
+            target.append(f"--target-port={port}")
+        result = runner.run_to_completion(
+            [*runner.base_args("db-rewrite-urls", fs_root=False), *target, "--rewrite-url", dest.TEMPORARY_ADDRESS, new_url],
+            stage="deploy", secret_args=[f"--target-pass={db_password(ctx)}"], progress_label="Updating the address",
+        )
         if result.exit_code != 0:
             raise DestinationFailed(
                 f"Updating the address in the database failed: {result.error or 'no details'}",
                 f"Run the tool again to retry. Details are in {ctx.p.log_file}.",
                 code=result.error_code,
             )
-        state.set("db_address_finished", True)
+    state.set("db_address_finished", True)
+    ctx.info(f"The address is now {new_url} everywhere in the database.")
 
 
 def _merge_folder(source: Path, target: Path, *, copy: bool) -> None:
@@ -657,6 +708,7 @@ def stage_deploy(ctx: Context) -> None:
     _place_files(ctx, runner, folder)
     _write_config(ctx, folder)
     _fix_rewrite_rules(ctx, folder)
+    _finish_address(ctx, runner, folder)
     if not state.get("runtime_applied"):
         # apply-runtime only generates configuration for php-builtin, nginx-fpm
         # and playground-cli ("none" is rejected despite its help text). The

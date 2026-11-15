@@ -1,6 +1,6 @@
 # Verification
 
-Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.3.1, and 01, 09, 12, 13 and 17 on 1.3.2 (built before only the version number changed). The
+Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.3.1, 01, 09, 12, 13 and 17 on 1.3.2, and 17 again on 1.3.3. The
 tool ran as an unprivileged user (`wpuser`) inside a pseudo-terminal, typing
 answers the way a person would. The full output of each run is in
 `e2e/results/`, followed by independent checks made with curl, WP-CLI and SQL.
@@ -30,7 +30,7 @@ answers the way a person would. The full output of each run is in
 | 12 | Size report and leftover backups | `01-clean.txt`, `14-keep-backups.txt` | Pass. The test site has backups from All-in-One WP Migration, UpdraftPlus and Duplicator (never copied), plus a 25 MB zip, a backup folder, a renamed export and a database dump. The tool shows files and database sizes, says about 55 MB of plugin backups, cache and logs stay behind, numbers the four leftovers (34.3 MB) and asks. Enter (the default) copies none of them. Picking "let me pick" and then `1` copies only the 25 MB zip and none of the other three. |
 | 13 | Existing site in a subfolder (`public_html/new`), "keep" | `15-keep-in-subfolder.txt` | Pass. The old site moves to `<base>/old.dest.test/public_html` (next to the domain's folder, not inside it), boots under WP-CLI at https://old.dest.test with its `.htaccess` reset to `/`, and the copy loads at https://dest.test/new. Added after a real run offered a folder nested inside the domain's folder. |
 | 14 | Existing site, "keep", the new subdomain folder holds only host files (`.well-known`, `Default.html`) | `16-keep-harmless-files.txt` | Pass. The tool does not ask about them, says it left them as they are, and moves the old site in next to them. Both are still there afterwards, and both sites load. |
-| 15 | Site copied into a subfolder of its own address (`https://src-a.test` to `https://src-a.test/new`) | `17-same-domain-subfolder.txt` | Pass. Links in post content, the menu, post meta and serialized options all point to `https://src-a.test/new/...`, with no `/new/new` and no temporary address left. Added after a real run gave `/new/new/` links. The test web server does not answer for src-a.test, so the online check reports 404 there. |
+| 15 | Site copied into a subfolder of its own address (`https://src-a.test` to `https://src-a.test/new`) | `17-same-domain-subfolder.txt` | Pass. Links in post content, the menu, post meta and serialized options all point to `https://src-a.test/new/...`, with no `/new/new` and no temporary address left anywhere, including the guid and a table without a primary key (plain and serialized values). The address step took about 3 seconds with WP-CLI. Added after a real run gave `/new/new/` links. The test web server does not answer for src-a.test, so the online check reports 404 there. |
 
 Extra runs for the layout decision: `10-layout-link.txt` (symlinks: 403,
 removed from the tool) and `11-layout-copy.txt` (copy: works, no symlinks).

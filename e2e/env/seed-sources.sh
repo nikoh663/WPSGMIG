@@ -33,6 +33,8 @@ docker exec wpm-src-a sh -c 'cd /var/www/html && wp --allow-root post list --pos
   wp --allow-root post create --post_type=page --post_status=publish --post_title=Reviews --post_name=reviews --post_content="<!-- wp:paragraph --><p>See <a href=\"https://src-a.test/sample-page/\">sample</a> and <a href=\"https://src-a.test/reviews/\">reviews</a></p><!-- /wp:paragraph -->" &&
   wp --allow-root menu create Main && wp --allow-root menu item add-custom Main Reviews https://src-a.test/reviews/ &&
   wp --allow-root option add test_serialized --format=json "{\"u\":\"https://src-a.test/reviews/\"}"; }'
+# A table without a primary key, as some plugins create.
+docker exec wpm-src-a sh -c 'cd /var/www/html && wp --allow-root eval "global \$wpdb; \$wpdb->query(\"CREATE TABLE IF NOT EXISTS wp_nopk_log (a int, b text)\"); if (!\$wpdb->get_var(\"SELECT COUNT(*) FROM wp_nopk_log\")) { \$wpdb->query(\$wpdb->prepare(\"INSERT INTO wp_nopk_log VALUES (1, %s), (2, %s)\", \"see https://src-a.test/reviews/\", serialize(array(\"u\" => \"https://src-a.test/reviews/\")))); }"'
 echo seeded
 # Leftover backups on source A, for the size report and the "leave them out" question.
 # The first group is skipped by the transfer engine itself; the second group is

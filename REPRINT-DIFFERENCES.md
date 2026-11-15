@@ -59,8 +59,12 @@ field name the tool uses was taken from that source and from each command's
      Reproduced with `db-rewrite-urls` on a test table.
    - Workaround: when the new address contains the old one, the tool rewrites
      in two steps: old address to `https://wpmigrate-new-address.invalid`
-     during `db-apply`, then that to the new address with `db-rewrite-urls`.
-     Neither step's target contains its source.
+     during `db-apply`, then that to the new address with WP-CLI's
+     `search-replace` (plus a small fixed `wp eval-file` script for tables
+     without a primary key, which `search-replace` skips). Neither step's
+     target contains its source. `db-rewrite-urls` is only the fallback when
+     WP-CLI cannot run: it checks one record per step and took more than 20
+     minutes on a real 467 MB database, against a few seconds for WP-CLI.
 
 ## Not Reprint, but worth knowing
 

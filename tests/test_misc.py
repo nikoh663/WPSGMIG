@@ -253,3 +253,20 @@ class AddressRewriteTests(unittest.TestCase):
 
     def test_http_to_https_same_domain_also_two_steps(self):
         self.assertEqual(len(destination.address_rewrite_steps("http://example.com/?reprint-api", "https://example.com")), 2)
+
+
+class TemporaryAddressTests(unittest.TestCase):
+    def test_replacements(self):
+        pairs = destination.temporary_address_replacements("https://example.com/new/")
+        self.assertEqual(pairs[0], (destination.TEMPORARY_ADDRESS, "https://example.com/new"))
+        self.assertEqual(pairs[1], ("https:\\/\\/wpmigrate-new-address.invalid", "https:\\/\\/example.com\\/new"))
+        self.assertEqual(pairs[2], ("wpmigrate-new-address.invalid", "example.com/new"))
+        # Applied in order, every form ends up at the new address and none doubles.
+        for text, expected in (
+            ("https://wpmigrate-new-address.invalid/a/", "https://example.com/new/a/"),
+            ('"https:\\/\\/wpmigrate-new-address.invalid\\/a"', '"https:\\/\\/example.com\\/new\\/a"'),
+            ("//wpmigrate-new-address.invalid/a", "//example.com/new/a"),
+        ):
+            for old, new in pairs:
+                text = text.replace(old, new)
+            self.assertEqual(text, expected)

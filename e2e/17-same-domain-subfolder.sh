@@ -15,5 +15,10 @@ W="/usr/sbin/runuser -u wpuser -- php /opt/wpm-ref/wp-cli.phar"
     echo "Reviews page: ", $wpdb->get_var("select post_content from {$wpdb->posts} where post_name=\"reviews\" and post_type=\"page\""), "\n";
     echo "menu link: ", $wpdb->get_var("select meta_value from {$wpdb->postmeta} where meta_key=\"_menu_item_url\" and meta_value<>\"\" limit 1"), "\n";
     echo "rows with /new/new: ", $wpdb->get_var("select count(*) from {$wpdb->posts} where post_content like \"%/new/new%\""), "\n";
+    echo "table without a primary key: ", implode(" | ", $wpdb->get_col("select b from wp_nopk_log")), "\n";
+    echo "guid of the Reviews page: ", $wpdb->get_var("select guid from {$wpdb->posts} where post_name=\"reviews\" and post_type=\"page\""), "\n";
+    $left = 0; foreach ($wpdb->get_col("SHOW TABLES") as $t) { foreach ($wpdb->get_results("SHOW COLUMNS FROM `$t`") as $c) { $left += (int) $wpdb->get_var("select count(*) from `$t` where `$c->Field` like \"%wpmigrate-new-address%\""); } }
+    echo "values anywhere with the temporary address: $left\n";
     echo "rows with the temporary address: ", $wpdb->get_var("select count(*) from {$wpdb->posts} where post_content like \"%wpmigrate-new-address%\""), "\n";'
 } >> $OUT 2>&1
+{ echo "--- timing from the log"; grep -E "Changing the address|address is now|search-replace|primary key" /home/wpuser/.wpmigrate/sites/src-a.test/wpmigrate.log | cut -c1-200; } >> $OUT
