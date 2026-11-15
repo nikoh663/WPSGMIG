@@ -346,7 +346,14 @@ def choose_database(ctx: Context) -> None:
             if values:
                 ctx.secrets.db_password = values.password
                 ctx.redactor.add(values.password)
-    ctx.note("Next, the database for the copy. If you do not have one yet, create an empty database and a user for it in your hosting panel first.")
+    if action == "keep" and existing:
+        ctx.note(
+            f"Your old site keeps its own database ({existing['name']}); I only updated its address in there, so nothing else needs to change for it. "
+            "The copy needs a database of its own, so the two sites never overwrite each other. "
+            "If you do not have one yet, create an empty database and a user for it in your hosting panel first."
+        )
+    else:
+        ctx.note("Next, the database for the copy. If you do not have one yet, create an empty database and a user for it in your hosting panel first.")
     while True:
         host = ctx.prompter.ask_text(TextQuestion("db_host", "Database host", default=defaults["host"] or "localhost")).strip()
         name = ctx.prompter.ask_text(TextQuestion("db_name", "Database name", default=defaults["name"] or None)).strip()

@@ -64,8 +64,8 @@
   › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ✓ Copying files  163 MB · 3,839 files · 12s
-  ✓ The database is copied over (187.0 KB).
+  ✓ Copying files  163 MB · 3,839 files · 8s
+  ✓ The database is copied over (190.4 KB).
 
  ◆ Setting up its new home
 
@@ -116,8 +116,11 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
   ✓ The old site starts correctly with the address https://old.dest.test.
   ✓ https://old.dest.test answers (HTTP 200).
 
-  Next, the database for the copy. If you do not have one yet, create an empty
-  database and a user for it in your hosting panel first.
+  Your old site keeps its own database (site_old); I only updated its address
+  in there, so nothing else needs to change for it. The copy needs a database
+  of its own, so the two sites never overwrite each other. If you do not have
+  one yet, create an empty database and a user for it in your hosting panel
+  first.
 
   ? Database host
     Press Enter for localhost
@@ -165,7 +168,7 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
 
  ◆ Putting everything in place
   ✓ Moved 1 other item(s) to
-    /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261115-124402.
+    /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261115-125615.
   ✓ Importing the database  0.2 MB · 41 queries · 0s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html.
   ✓ Connected the copy to its database (wp-config.php).
@@ -182,7 +185,7 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (47s)
+  ✓ All done! Your site has been copied.  (44s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -200,7 +203,7 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
     https://old.dest.test answered (HTTP 200). Search engines are asked not to
     index it.
   • Files that were in the folder before were moved to
-    /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261115-124402.
+    /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261115-125615.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
 
 [drive] exit code: 0
