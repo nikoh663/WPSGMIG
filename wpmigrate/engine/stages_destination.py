@@ -467,33 +467,41 @@ def _clear_folder(ctx: Context, folder: Path) -> None:
 
 def _apply_database(ctx: Context, runner: ReprintRunner) -> None:
     state = ctx.st
-    if state.get("db_applied"):
-        return
     database = state.get("dest_db")
     host, port = dest.split_host_port(database["host"])
-    args = [
-        *runner.base_args("db-apply"),
+    target = [
         "--target-engine=mysql",
         f"--target-host={host}",
         f"--target-user={database['user']}",
         f"--target-db={database['name']}",
     ]
     if port:
-        args.append(f"--target-port={port}")
+        target.append(f"--target-port={port}")
     source_home = state.get("source_home_url") or state.get("source_url")
     new_url = state.get("new_site_url")
-    if new_url.rstrip("/") != (source_home or "").rstrip("/"):
-        args.append(f"--new-site-url={new_url}")
-    ctx.info("Importing the database" + (f" and changing the address to {new_url}" if "--new-site-url" in " ".join(args) else "") + "...")
-    result = runner.run_to_completion(args, stage="deploy", secret_args=[f"--target-pass={db_password(ctx)}"], progress_label="Importing the database")
-    if result.exit_code != 0:
-        raise DestinationFailed(
-            f"Importing the database failed: {result.error or 'no details'}",
-            f"Check that the database user may create tables, then run the tool again. Details are in {ctx.p.log_file}.",
-            code=result.error_code,
-        )
-    state.set("db_applied", True)
-    state.record_destructive("tables_replaced", database=database["name"], prefix=database["table_prefix"])
+    steps = dest.address_rewrite_steps(runner.api_url, new_url) if new_url.rstrip("/") != (source_home or "").rstrip("/") else [[]]
+    secret = [f"--target-pass={db_password(ctx)}"]
+    if not state.get("db_applied"):
+        ctx.info("Importing the database" + (f" and changing the address to {new_url}" if steps[0] else "") + "...")
+        result = runner.run_to_completion([*runner.base_args("db-apply"), *target, *steps[0]], stage="deploy", secret_args=secret, progress_label="Importing the database")
+        if result.exit_code != 0:
+            raise DestinationFailed(
+                f"Importing the database failed: {result.error or 'no details'}",
+                f"Check that the database user may create tables, then run the tool again. Details are in {ctx.p.log_file}.",
+                code=result.error_code,
+            )
+        state.set("db_applied", True)
+        state.record_destructive("tables_replaced", database=database["name"], prefix=database["table_prefix"])
+    if len(steps) > 1 and not state.get("db_address_finished"):
+        # Second half of a move into a subfolder of the same domain (see address_rewrite_steps).
+        result = runner.run_to_completion([*runner.base_args("db-rewrite-urls", fs_root=False), *target, *steps[1]], stage="deploy", secret_args=secret, progress_label="Updating the address")
+        if result.exit_code != 0:
+            raise DestinationFailed(
+                f"Updating the address in the database failed: {result.error or 'no details'}",
+                f"Run the tool again to retry. Details are in {ctx.p.log_file}.",
+                code=result.error_code,
+            )
+        state.set("db_address_finished", True)
 
 
 def _merge_folder(source: Path, target: Path, *, copy: bool) -> None:

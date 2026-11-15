@@ -237,3 +237,19 @@ class BackupChoiceTests(unittest.TestCase):
             "/wp-content/plugins/updraftplus/updraftplus.php",
         )]
         self.assertEqual(sizes.plugin_backup_owners(files, root), ["All-in-One WP Migration", "UpdraftPlus", "Duplicator", "BackWPup"])
+
+
+class AddressRewriteTests(unittest.TestCase):
+    def test_other_domain_is_one_step(self):
+        steps = destination.address_rewrite_steps("https://old.example/?reprint-api", "https://new.example/blog")
+        self.assertEqual(steps, [["--rewrite-url", "https://old.example", "https://new.example/blog", "--rewrite-url", "http://old.example", "https://new.example/blog"]])
+
+    def test_subfolder_of_same_domain_goes_through_temporary_address(self):
+        steps = destination.address_rewrite_steps("https://example.com/?reprint-api", "https://example.com/new/")
+        temp = destination.TEMPORARY_ADDRESS
+        self.assertEqual(steps[0], ["--rewrite-url", "https://example.com", temp, "--rewrite-url", "http://example.com", temp])
+        self.assertEqual(steps[1], ["--rewrite-url", temp, "https://example.com/new"])
+        self.assertNotIn("example.com", temp)
+
+    def test_http_to_https_same_domain_also_two_steps(self):
+        self.assertEqual(len(destination.address_rewrite_steps("http://example.com/?reprint-api", "https://example.com")), 2)

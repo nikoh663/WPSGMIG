@@ -206,3 +206,29 @@ def address_for_folder(folder: Path) -> str | None:
             below = "/".join(urllib.parse.quote(part) for part in parts[index + 1:])
             return "https://" + parts[index - 1].lower() + ("/" + below if below else "")
     return None
+
+
+# A stand-in address used while moving a site to a subfolder of its own domain.
+# The ".invalid" top-level domain is reserved, so it can never be a real site.
+TEMPORARY_ADDRESS = "https://wpmigrate-new-address.invalid"
+
+
+def address_rewrite_steps(source_api_url: str, new_url: str) -> list[list[str]]:
+    """The URL replacements for the database, as lists of --rewrite-url arguments.
+
+    Normally this is one step from the old origin (http and https) to the new
+    address. When the new address still contains the old one, for example
+    https://example.com to https://example.com/new, the transfer engine
+    rewrites some links twice inside post content and gives
+    https://example.com/new/new/page/. Going through a temporary address
+    first avoids that, because neither step's target then contains its source.
+    """
+    parts = urllib.parse.urlsplit(source_api_url)
+    origins = [f"https://{parts.netloc}", f"http://{parts.netloc}"]
+    new_url = new_url.rstrip("/")
+    if not any(origin.lower() in new_url.lower() for origin in origins) and f"//{parts.netloc.lower()}" not in new_url.lower():
+        return [[arg for origin in origins for arg in ("--rewrite-url", origin, new_url)]]
+    return [
+        [arg for origin in origins for arg in ("--rewrite-url", origin, TEMPORARY_ADDRESS)],
+        ["--rewrite-url", TEMPORARY_ADDRESS, new_url],
+    ]

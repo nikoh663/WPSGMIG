@@ -65,8 +65,8 @@
   › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ✓ Copying files  163 MB · 3,839 files · 9s
-  ✓ The database is copied over (188.5 KB).
+  ✓ Copying files  163 MB · 3,839 files · 10s
+  ✓ The database is copied over (195.2 KB).
 
  ◆ Setting up its new home
 
@@ -133,6 +133,7 @@
 [drive] exit code: 0
 200 https://dest.test/new/
 200 https://dest.test/new/sample-page/
+200 https://dest.test/new/reviews/
 RewriteBase /new/
 RewriteRule . /new/index.php [L]
 site_new	12

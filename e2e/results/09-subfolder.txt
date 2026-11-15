@@ -65,7 +65,7 @@
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
   ✓ Copying files  163 MB · 3,839 files · 10s
-  ✓ The database is copied over (188.1 KB).
+  ✓ The database is copied over (194.9 KB).
 
  ◆ Setting up its new home
 
@@ -122,7 +122,7 @@
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (39s)
+  ✓ All done! Your site has been copied.  (38s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html/blog and uses
     the address https://dest.test/blog.

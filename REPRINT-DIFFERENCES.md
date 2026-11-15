@@ -46,6 +46,22 @@ field name the tool uses was taken from that source and from each command's
    - Workaround: the tool records in its own state that the import is done and
      never repeats it.
 
+5. **Moving a site into a subfolder of its own domain doubles some links.**
+   - What the docs say: `--new-site-url` (and `--rewrite-url FROM TO`)
+     replaces the old address with the new one.
+   - What happened: with `--new-site-url=https://example.com/new` for a site at
+     `https://example.com`, links inside post content came out as
+     `https://example.com/new/new/page/`. Menu links, options and post meta
+     were fine. `StructuredDataUrlRewriter::rewrite_urls()` rewrites each URL
+     found in block markup with `set_url()`, then runs
+     `replace_url_bases_in_current_token()` over the same token. When the new
+     address still contains the old one, the second pass matches again.
+     Reproduced with `db-rewrite-urls` on a test table.
+   - Workaround: when the new address contains the old one, the tool rewrites
+     in two steps: old address to `https://wpmigrate-new-address.invalid`
+     during `db-apply`, then that to the new address with `db-rewrite-urls`.
+     Neither step's target contains its source.
+
 ## Not Reprint, but worth knowing
 
 - The `reprint.phar` download from wordpress.org could not be tested, because

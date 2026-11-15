@@ -64,8 +64,8 @@
   › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ✓ Copying files  163 MB · 3,839 files · 11s
-  ✓ The database is copied over (185.5 KB).
+  ✓ Copying files  163 MB · 3,839 files · 10s
+  ✓ The database is copied over (194.5 KB).
 
  ◆ Setting up its new home
 
@@ -113,7 +113,7 @@
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (38s)
+  ✓ All done! Your site has been copied.  (37s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -134,10 +134,3 @@ OK   https://dest.test/sample-page/ -> HTTP 200, contains 'Sample Page'
 site_new	12
 site_new home:	https://dest.test
 css: body{background:url("https://dest.test/wp-content/themes/marker-theme/bg.png")}
---- leftover backups in the copy:
-ls: cannot access 'old-site-backup.zip': No such file or directory
-ls: cannot access 'db-dump.sql': No such file or directory
-ls: cannot access 'wp-content/backups': No such file or directory
-ls: cannot access 'wp-content/ai1wm-backups': No such file or directory
---- secret check
-neither password appears in the private directory or the site folder (other than wp-config.php)

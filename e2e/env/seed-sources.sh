@@ -28,6 +28,11 @@ for s in a b; do
   # A largish file so that an interrupted download can be demonstrated.
   docker exec -u www-data $c sh -c "head -c 60000000 /dev/urandom > wp-content/uploads/large-video.bin"
 done
+# A page, a menu and stored links, to check how addresses are rewritten.
+docker exec wpm-src-a sh -c 'cd /var/www/html && wp --allow-root post list --post_type=page --name=reviews --format=count | grep -q 1 || {
+  wp --allow-root post create --post_type=page --post_status=publish --post_title=Reviews --post_name=reviews --post_content="<!-- wp:paragraph --><p>See <a href=\"https://src-a.test/sample-page/\">sample</a> and <a href=\"https://src-a.test/reviews/\">reviews</a></p><!-- /wp:paragraph -->" &&
+  wp --allow-root menu create Main && wp --allow-root menu item add-custom Main Reviews https://src-a.test/reviews/ &&
+  wp --allow-root option add test_serialized --format=json "{\"u\":\"https://src-a.test/reviews/\"}"; }'
 echo seeded
 # Leftover backups on source A, for the size report and the "leave them out" question.
 # The first group is skipped by the transfer engine itself; the second group is
