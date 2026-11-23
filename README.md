@@ -76,8 +76,7 @@ extensions (all common on hosting). It runs as your normal hosting user and does
     with a hosts-file line in yellow, such as
     `203.0.113.10 example.com www.example.com`, so you can see the copy on
     this server before switching DNS. It finds this server's IP address
-    itself: from the other domains in the same hosting account, which
-    already point here, then from the server's own name. It checks that the
+    itself, the same way as `dig +short $(hostname)`, and checks that the
     web server at that address answers for the site. `--server-ip` sets the
     address by hand.
 

@@ -300,32 +300,28 @@ class HostsLineTests(unittest.TestCase):
         self.assertEqual(destination.sites_base_folder(Path("/home/u/www/example.com/public_html/new")), Path("/home/u/www"))
         self.assertIsNone(destination.sites_base_folder(Path("/var/www/html")))
 
-    def test_candidates_vote_from_other_domains(self):
+    def test_candidates_come_from_dig_of_the_host_name(self):
         import socket
-        with TemporaryDirectory() as tmp:
-            base = Path(tmp) / "www"
-            for name in ("example.com", "temp.host-example.net", "other.org", "old.example.com"):
-                (base / name / "public_html").mkdir(parents=True)
-            table = {"temp.host-example.net": ["35.213.238.76"], "other.org": ["35.213.238.76"], "old.example.com": ["35.213.238.76"], "example.com": ["93.184.216.34"]}
+        from types import SimpleNamespace
+        calls = []
 
-            def resolver(name, port, family, kind):
-                return [(socket.AF_INET, kind, 6, "", (ip, 0)) for ip in table.get(name, [])]
-            candidates = destination.server_ip_candidates(base / "example.com" / "public_html", "https://example.com", resolver)
-            self.assertEqual(candidates[0], "35.213.238.76")
-            self.assertNotIn("93.184.216.34", candidates)
+        class FakeSystem:
+            def which(self, name):
+                return "/usr/bin/dig" if name == "dig" else None
 
+            def run(self, argv, timeout=None):
+                calls.append(argv)
+                return SimpleNamespace(returncode=0, stdout="10.0.0.5\n35.213.217.6\n", stderr="")
+        self.assertEqual(destination.server_ip_candidates(FakeSystem()), ["35.213.217.6"])
+        self.assertEqual(calls[0], ["/usr/bin/dig", "+short", socket.gethostname()])
 
-class LiveDomainIpTests(unittest.TestCase):
-    def test_live_domain_ip_is_never_offered(self):
+    def test_candidates_without_dig(self):
         import socket
-        with TemporaryDirectory() as tmp:
-            base = Path(tmp) / "www"
-            for name in ("example.com", "parked.example.org"):
-                (base / name / "public_html").mkdir(parents=True)
-            # The other domain also still points to the old host.
-            table = {"example.com": ["15.235.207.79"], "www.example.com": ["15.235.207.79"], "parked.example.org": ["15.235.207.79"]}
 
-            def resolver(name, port, family, kind):
-                return [(socket.AF_INET, kind, 6, "", (ip, 0)) for ip in table.get(name, [])]
-            candidates = destination.server_ip_candidates(base / "example.com" / "public_html", "https://example.com", resolver)
-            self.assertNotIn("15.235.207.79", candidates)
+        class NoDig:
+            def which(self, name):
+                return None
+
+        def resolver(name, port, family, kind):
+            return [(socket.AF_INET, kind, 6, "", ("35.213.217.6", 0)), (socket.AF_INET, kind, 6, "", ("127.0.1.1", 0))]
+        self.assertEqual(destination.server_ip_candidates(NoDig(), resolver), ["35.213.217.6"])

@@ -68,5 +68,5 @@ WordPress block to match the new address's path, and a unit test covers it.
   names the backup plugins it can see. Plugins whose backup folder holds only
   the archives themselves (no `index.php` next to them) are not named.
 - Speed on real hosting. On the test machine a 386 MB site (197 MB of files, 189 MB of database) copies in about 36 seconds, so the tool itself adds little; on real hosting the time depends on how fast the old site can send its files and how fast the new database imports. The summary now shows how long each step took.
-- Finding the server's IP address by itself. On the test machine every domain resolves to a private address, which the tool ignores, so only the unit tests (with sample DNS answers) cover the automatic choice. On real hosting it uses the IP that the account's other domains resolve to.
+- Finding the server's IP address by itself (`dig +short $(hostname)`). The test machine's name has no public address, so only unit tests with sample `dig` and resolver answers cover it.
 - Very large sites. The test site is about 390 MB: 197 MB in 3,843 files and a 189 MB database.

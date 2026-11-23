@@ -148,13 +148,13 @@ def _hosts_entry(ctx: Context, folder: Path, new_url: str) -> dict:
         candidates = [ctx.options.server_ip]
     else:
         ctx.info("Finding this server's IP address...")
-        candidates = dest.server_ip_candidates(folder, new_url)
+        candidates = dest.server_ip_candidates(ctx.system)
     confirmed = next((ip for ip in candidates[:5] if dest.serves_site(ip, new_url)), None)
     ip = confirmed or (candidates[0] if candidates else None)
     state.update({"server_ip": ip, "server_ip_confirmed": bool(confirmed)})
     ctx.log(f"server IP candidates {candidates}; confirmed {confirmed}")
     if ip is None:
-        return {"hosts_line": dest.hosts_line("<this server's IP>", new_url), "hosts_note": "I could not work out this server's IP address. Find it in your hosting panel and put it at the start of this line:"}
+        return {"hosts_line": dest.hosts_line("<this server's IP>", new_url), "hosts_note": "I could not work out this server's IP address. Run dig +short $(hostname) here, or look in your hosting panel, and put it at the start of this line:"}
     note = "To see the copy before you switch DNS, add this line to the hosts file on your computer:"
     if not confirmed:
         note += f" (I could not confirm that {ip} serves the site; check the IP address in your hosting panel.)"

@@ -394,48 +394,29 @@ def resolve_ipv4(name: str, resolver=socket.getaddrinfo) -> list[str]:
     return sorted({record[4][0] for record in records})
 
 
-def server_ip_candidates(folder: Path, site_url: str, resolver=socket.getaddrinfo) -> list[str]:
-    """Public IPv4 addresses that are likely this server's, best first.
+def server_ip_candidates(system: System, resolver=socket.getaddrinfo) -> list[str]:
+    """This server's public IPv4 address, the same as ``dig +short $(hostname)``.
 
-    The other domains in this hosting account (one folder each next to the
-    site's own) normally point here already, so the address most of them
-    resolve to comes first. The site's own domain is left out: until its DNS
-    is switched it still points to the old server. Then this machine's own
-    host name, and the address it uses to reach the internet.
+    Asks DNS with ``dig`` when it is installed, because the local hosts file
+    often maps the machine's own name to a private address. Without ``dig``,
+    the system resolver is used for the host name and the full host name.
     """
-    own = set(hosts_names(site_url))
-    # Where the domain points right now is the old server until DNS is
-    # switched, so those addresses are never offered, whatever votes for them.
-    live = {ip for name in own for ip in resolve_ipv4(name, resolver)}
-    votes: dict[str, int] = {}
-    base = sites_base_folder(folder)
-    if base is not None and base.is_dir():
-        try:
-            names = sorted(entry.name for entry in base.iterdir() if entry.is_dir() and _DOMAIN_NAME.match(entry.name))
-        except OSError:
-            names = []
-        for name in names[:30]:
-            if name.lower() in own:
-                continue
-            for ip in resolve_ipv4(name, resolver):
-                if _is_public_ipv4(ip):
-                    votes[ip] = votes.get(ip, 0) + 1
-    ordered = [ip for ip in sorted(votes, key=lambda ip: (-votes[ip], ip)) if ip not in live]
-    for name in (socket.getfqdn(), socket.gethostname()):
+    names = [socket.gethostname(), socket.getfqdn()]
+    ordered: list[str] = []
+    dig = system.which("dig")
+    if dig:
+        for name in names:
+            result = system.run([dig, "+short", name], timeout=20)
+            if result.returncode == 0:
+                for line in result.stdout.split():
+                    if _is_public_ipv4(line) and line not in ordered:
+                        ordered.append(line)
+            if ordered:
+                return ordered
+    for name in names:
         for ip in resolve_ipv4(name, resolver):
-            if _is_public_ipv4(ip) and ip not in ordered and ip not in live:
+            if _is_public_ipv4(ip) and ip not in ordered:
                 ordered.append(ip)
-    try:
-        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            probe.connect(("192.0.2.1", 9))  # no packet is sent for UDP connect
-            own_ip = probe.getsockname()[0]
-        finally:
-            probe.close()
-        if _is_public_ipv4(own_ip) and own_ip not in ordered and own_ip not in live:
-            ordered.append(own_ip)
-    except OSError:
-        pass
     return ordered
 
 
