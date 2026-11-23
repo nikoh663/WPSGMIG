@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.4                                │
+  │  wpmigrate 1.3.5                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -66,8 +66,8 @@
   › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ✓ Copying files  163 MB · 3,839 files · 10s
-  ✓ The database is copied over (212.9 MB).
+  ✓ Copying files  163 MB · 3,839 files · 11s
+  ✓ The database is copied over (212.8 MB).
 
  ◆ Setting up its new home
 
@@ -127,10 +127,6 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
   one yet, create an empty database and a user for it in your hosting panel
   first.
 
-  ? Database host
-    Press Enter for localhost
-  › 172.30.0.12
-
   ? Database name
   › site_old
 
@@ -140,10 +136,6 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
     the same prefix the copied site uses. Sharing them would overwrite the old
     site. Create a separate database for the copied site in your hosting panel
     and enter it here.
-
-  ? Database host
-    Press Enter for 172.30.0.12
-  › 172.30.0.12
 
   ? Database name
   › site_new
@@ -176,7 +168,7 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
 
  ◆ Putting everything in place
   ✓ Moved 1 other item(s) to
-    /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261115-220944.
+    /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261123-154935.
   ✓ Importing the database  213 MB · 286 queries · 9s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html/new.
   ✓ Connected the copy to its database (wp-config.php).
@@ -194,7 +186,7 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (45s)
+  ✓ All done! Your site has been copied.  (47s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html/new and uses the
     address https://dest.test/new.
@@ -212,10 +204,15 @@ When it is created, the folder /home/wpuser/www/old.dest.test/public_html
     https://old.dest.test answered (HTTP 200). Search engines are asked not to
     index it.
   • Files that were in the folder before were moved to
-    /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261115-220944.
-  • Where the time went: copying the files 12s, importing the database 9s,
+    /home/wpuser/.wpmigrate/sites/src-a.test/backups/20261123-154935.
+  • Where the time went: copying the files 12s, importing the database 10s,
     copying the database 6s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
+
+  I could not work out this server's IP address. Find it in your hosting panel
+  and put it at the start of this line:
+
+      <this server's IP> dest.test www.dest.test
 
 [drive] exit code: 0
 old site home option (WP-CLI, full boot): https://old.dest.test

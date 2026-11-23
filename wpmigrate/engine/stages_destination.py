@@ -329,6 +329,26 @@ def check_address(ctx: Context, url: str) -> tuple[bool, str]:
 
 # -- 7d: database -----------------------------------------------------------------
 
+def _has_answer(ctx: Context, key: str) -> bool:
+    """Whether the front end already has an answer for this question (an option)."""
+    check = getattr(ctx.prompter, "has_answer", None)
+    return bool(check and check(key))
+
+
+def _database_retry(ctx: Context, host: str) -> str:
+    """After a failed connection: try again, change the host, or stop."""
+    choice = ctx.prompter.ask_choice(ChoiceQuestion("db_retry", "What would you like to do?", [
+        Choice("again", "Type them again (Enter keeps each one as it was)."),
+        Choice("host", f"Change the database host (now {host})."),
+        Choice("cancel", "Stop here. Nothing has been changed."),
+    ], default="again"))
+    if choice == "cancel":
+        raise Cancelled("Stopped at the database details.", "Run the tool again when you have the right database details; it continues from here.")
+    if choice == "host":
+        return ctx.prompter.ask_text(TextQuestion("db_host_new", "Database host", default=host)).strip() or host
+    return host
+
+
 def choose_database(ctx: Context) -> None:
     state = ctx.st
     if state.get("dest_db_confirmed"):
@@ -355,12 +375,19 @@ def choose_database(ctx: Context) -> None:
         )
     else:
         ctx.note("Next, the database for the copy. If you do not have one yet, create an empty database and a user for it in your hosting panel first.")
+    # The host is nearly always localhost on hosting, so it is not asked for:
+    # --db-host gives another one, and it can be changed if connecting fails.
+    host = (ctx.prompter.ask_text(TextQuestion("db_host", "Database host", default=defaults["host"] or "localhost")).strip()
+            if _has_answer(ctx, "db_host") else defaults["host"] or "localhost")
+    attempts = 0
     while True:
-        host = ctx.prompter.ask_text(TextQuestion("db_host", "Database host", default=defaults["host"] or "localhost")).strip()
+        attempts += 1
+        if attempts > 6:
+            raise DestinationFailed("Could not connect to the database with the details given.", "Check the database name, user and password in your hosting panel, then run the tool again.")
         name = ctx.prompter.ask_text(TextQuestion("db_name", "Database name", default=defaults["name"] or None)).strip()
         user = ctx.prompter.ask_text(TextQuestion("db_user", "Database user", default=defaults["user"] or None)).strip()
-        if not (host and name and user):
-            ctx.warn("Host, database name and user are all needed.")
+        if not (name and user):
+            ctx.warn("The database name and user are both needed.")
             continue
         if action == "keep" and existing and dest.normalize_db_host(existing["host"]) == dest.normalize_db_host(host) and existing["name"] == name and existing["table_prefix"] == prefix:
             ctx.warn(
@@ -373,18 +400,25 @@ def choose_database(ctx: Context) -> None:
         password = db_password(ctx)
         check = dest.check_database(ctx.system, php, host=host, name=name, user=user, password=password, prefix=prefix)
         if not check.ok:
-            ctx.warn(dest.explain_database_error(check) + " Please enter the details again.")
+            ctx.warn(dest.explain_database_error(check))
             ctx.secrets.db_password = None
             defaults = {"host": host, "name": name, "user": user}
+            host = _database_retry(ctx, host)
             continue
-        break
-    if check.prefix_tables:
-        ctx.warn(f"The database {name} already has {len(check.prefix_tables)} table(s) starting with {prefix} ({', '.join(check.prefix_tables[:6])}{' ...' if len(check.prefix_tables) > 6 else ''}). They will be replaced by the copied site's tables.")
-    else:
-        ctx.info(f"Connected to the database {name} (MySQL {check.version}).")
-    agree = ctx.prompter.confirm(ConfirmQuestion("confirm_replace_tables", f"Ready to import into the database {name}? Any tables that start with {prefix} will be replaced.", default=False))
-    if not agree:
-        raise Cancelled("Stopped before changing the database.", "Run the tool again to choose a different database.")
+        if check.prefix_tables:
+            ctx.warn(f"The database {name} already has {len(check.prefix_tables)} table(s) starting with {prefix} ({', '.join(check.prefix_tables[:6])}{' ...' if len(check.prefix_tables) > 6 else ''}). They will be replaced by the copied site's tables.")
+        else:
+            ctx.info(f"Connected to the database {name} (MySQL {check.version}).")
+        if ctx.prompter.confirm(ConfirmQuestion("confirm_replace_tables", f"Ready to import into the database {name}? Any tables that start with {prefix} will be replaced.", default=False)):
+            break
+        again = ctx.prompter.ask_choice(ChoiceQuestion("db_other", "What would you like to do?", [
+            Choice("again", "Enter different database details."),
+            Choice("cancel", "Stop here, without changing any database."),
+        ], default="again"))
+        if again == "cancel":
+            raise Cancelled("Stopped before changing the database.", "Run the tool again to choose a different database.")
+        ctx.secrets.db_password = None
+        defaults = {"host": host, "name": "", "user": ""}
     state.update({"dest_db": {"host": host, "name": name, "user": user, "table_prefix": prefix}, "dest_db_confirmed": True})
 
 

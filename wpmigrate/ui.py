@@ -401,3 +401,11 @@ class Renderer:
             lines[0] = "  " + t.style(s["bullet"], "yellow" if careful else "cyan") + " " + lines[0][4:]
             for line in lines:
                 t.write(line)
+        hosts = event.details.get("hosts_line")
+        if hosts:
+            t.write("")
+            for line in t.wrap(str(event.details.get("hosts_note") or ""), first="  ", rest="  "):
+                t.write(t.style(line, "yellow"))
+            t.write("")
+            # Never wrapped, so it can be copied in one piece.
+            t.write("      " + t.style(str(hosts), "bold", "yellow"))

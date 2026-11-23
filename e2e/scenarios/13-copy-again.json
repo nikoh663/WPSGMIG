@@ -64,10 +64,6 @@
    "send": "y\n"
   },
   {
-   "expect": "Database host",
-   "send": "\n"
-  },
-  {
    "expect": "Database name",
    "send": "\n"
   },

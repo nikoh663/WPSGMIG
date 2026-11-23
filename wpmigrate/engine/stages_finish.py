@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from wpmigrate.engine import destination as dest
 from wpmigrate.engine.destination import human_size, site_domain, timing_summary
 from wpmigrate.engine.context import Context
 from wpmigrate.engine.errors import MigrationError, SourceStepFailed
@@ -93,7 +94,7 @@ def stage_summary(ctx: Context) -> None:
         f"Its database is {state.get('dest_db', {}).get('name')} on {state.get('dest_db', {}).get('host')}.",
     ]
     if new_url.rstrip("/") == (state.get("source_home_url") or state.get("source_url")).rstrip("/"):
-        lines.append("The domain still points to the old server. To make visitors see the copy, switch the domain's DNS (or its nameservers) to this hosting account. Until then you can preview it with your hosting panel's preview feature or a hosts-file entry.")
+        lines.append("The domain still points to the old server. To make visitors see the copy, switch the domain's DNS (or its nameservers) to this hosting account. Until then you can preview it with the hosts-file line below.")
     elif state.get("new_site_answers"):
         lines.append(f"It is live now. Open it: {new_url}")
     else:
@@ -102,6 +103,10 @@ def stage_summary(ctx: Context) -> None:
         lines.append(f"Leftover backups were not copied ({state.get('excluded_count'):,} file(s), {human_size(state.get('excluded_bytes') or 0)}). They are still on your original site.")
     lines.append("Have a look around: the home page, a few posts and pages, images, the admin login, contact forms, and any shop checkout.")
     lines.append("Good to know: the copy is a real, working site. It can send e-mails (to customers too), take payments and run scheduled tasks. Switch off anything that must not happen twice.")
+    if state.get("plugins_installed"):
+        lines.append(f"Installed and activated these plugins: {', '.join(state.get('plugins_installed'))}.")
+    if state.get("plugins_missing"):
+        lines.append(f"Good to know: these plugins could not be installed: {', '.join(state.get('plugins_missing'))}. Run in {folder}: wp plugin install {' '.join(state.get('plugins_missing'))} --activate")
     disabled = state.get("disabled_plugins") or []
     if disabled:
         lines.append(f"{len(disabled)} plugin(s) were switched off because WordPress could not start with them; check them in Plugins.")
@@ -121,7 +126,8 @@ def stage_summary(ctx: Context) -> None:
     if timing:
         lines.append(timing)
     lines.append(f"The log of this copy is kept in {ctx.p.root}.")
-    ctx.emit(Status.DONE, "All done! Your site has been copied.", action_required="\n".join(f"- {line}" for line in lines))
+    hosts = _hosts_entry(ctx, Path(folder), new_url)
+    ctx.emit(Status.DONE, "All done! Your site has been copied.", action_required="\n".join(f"- {line}" for line in lines), **hosts)
     own = state.get("tool_location")
     if own and folder and Path(own).exists() and str(Path(own).resolve()).startswith(str(Path(folder).resolve()) + "/"):
         try:
@@ -131,3 +137,25 @@ def stage_summary(ctx: Context) -> None:
         if remove:
             LocalSystem.remove(Path(own))
             ctx.info(f"Removed {own}.")
+
+
+def _hosts_entry(ctx: Context, folder: Path, new_url: str) -> dict:
+    """A hosts-file line that shows the copy on this server, before DNS is switched."""
+    state = ctx.st
+    if not dest.hosts_names(new_url):
+        return {}
+    if ctx.options.server_ip:
+        candidates = [ctx.options.server_ip]
+    else:
+        ctx.info("Finding this server's IP address...")
+        candidates = dest.server_ip_candidates(folder, new_url)
+    confirmed = next((ip for ip in candidates[:5] if dest.serves_site(ip, new_url)), None)
+    ip = confirmed or (candidates[0] if candidates else None)
+    state.update({"server_ip": ip, "server_ip_confirmed": bool(confirmed)})
+    ctx.log(f"server IP candidates {candidates}; confirmed {confirmed}")
+    if ip is None:
+        return {"hosts_line": dest.hosts_line("<this server's IP>", new_url), "hosts_note": "I could not work out this server's IP address. Find it in your hosting panel and put it at the start of this line:"}
+    note = "To see the copy before you switch DNS, add this line to the hosts file on your computer:"
+    if not confirmed:
+        note += f" (I could not confirm that {ip} serves the site; check the IP address in your hosting panel.)"
+    return {"hosts_line": dest.hosts_line(ip, new_url), "hosts_note": note}

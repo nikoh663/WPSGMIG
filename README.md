@@ -58,7 +58,9 @@ extensions (all common on hosting). It runs as your normal hosting user and does
      `blog`);
    - what to do with a WordPress site already in that folder (remove it, keep it
      at `old.<domain>`, or cancel);
-   - the database details;
+   - the database details (the host is `localhost` unless you pass
+     `--db-host`; if connecting fails you can type the details again, change
+     the host, or stop);
    - what to do with files that are not part of WordPress: move them to a
      backup folder, to the kept old site's folder, or to a folder you name;
      remove them; or leave them. Files the host puts there, such as
@@ -70,7 +72,14 @@ extensions (all common on hosting). It runs as your normal hosting user and does
 10. If you asked for it with `--install-plugins`, installs and activates
     those plugins on the copy once it works, the same as
     `wp plugin install <plugins> --activate`.
-11. Prints a summary of what to check next, and where the time went.
+11. Prints a summary of what to check next, and where the time went. It ends
+    with a hosts-file line in yellow, such as
+    `203.0.113.10 example.com www.example.com`, so you can see the copy on
+    this server before switching DNS. It finds this server's IP address
+    itself: from the other domains in the same hosting account, which
+    already point here, then from the server's own name. It checks that the
+    web server at that address answers for the site. `--server-ip` sets the
+    address by hand.
 
 If any step on the old site fails (steps 3 to 5), for example because the host
 does not allow installing plugins, or there is a CAPTCHA or two-factor login, the

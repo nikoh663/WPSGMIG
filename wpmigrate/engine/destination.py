@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import http.client
+import ipaddress
 import json
 import os
 import re
+import socket
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
@@ -340,3 +343,120 @@ def parse_plugin_list(text: str) -> list[str]:
         if item not in plugins:
             plugins.append(item)
     return plugins
+
+
+# -- the server's own address, for a hosts-file line ---------------------------
+
+def hosts_names(site_url: str) -> list[str]:
+    """The names for a hosts-file line: the domain and its www form."""
+    host = (urllib.parse.urlsplit(site_url).hostname or "").lower().rstrip(".")
+    if not host or _is_ip(host):
+        return []
+    bare = host[4:] if host.startswith("www.") else host
+    return [bare, f"www.{bare}"]
+
+
+def hosts_line(ip: str, site_url: str) -> str | None:
+    names = hosts_names(site_url)
+    return f"{ip} {' '.join(names)}" if names else None
+
+
+def _is_ip(text: str) -> bool:
+    try:
+        ipaddress.ip_address(text)
+    except ValueError:
+        return False
+    return True
+
+
+def _is_public_ipv4(text: str) -> bool:
+    try:
+        address = ipaddress.ip_address(text)
+    except ValueError:
+        return False
+    return address.version == 4 and address.is_global
+
+
+def sites_base_folder(folder: Path) -> Path | None:
+    """The folder that holds one folder per domain, from ``<base>/<domain>/<web root>/...``."""
+    parts = Path(os.path.normpath(folder)).parts
+    for index in range(len(parts) - 1, 1, -1):
+        if parts[index] in WEB_ROOT_NAMES and _DOMAIN_NAME.match(parts[index - 1]):
+            return Path(*parts[: index - 1])
+    return None
+
+
+def resolve_ipv4(name: str, resolver=socket.getaddrinfo) -> list[str]:
+    try:
+        records = resolver(name, None, socket.AF_INET, socket.SOCK_STREAM)
+    except (OSError, UnicodeError):
+        return []
+    return sorted({record[4][0] for record in records})
+
+
+def server_ip_candidates(folder: Path, site_url: str, resolver=socket.getaddrinfo) -> list[str]:
+    """Public IPv4 addresses that are likely this server's, best first.
+
+    The other domains in this hosting account (one folder each next to the
+    site's own) normally point here already, so the address most of them
+    resolve to comes first. The site's own domain is left out: until its DNS
+    is switched it still points to the old server. Then this machine's own
+    host name, and the address it uses to reach the internet.
+    """
+    own = set(hosts_names(site_url))
+    votes: dict[str, int] = {}
+    base = sites_base_folder(folder)
+    if base is not None and base.is_dir():
+        try:
+            names = sorted(entry.name for entry in base.iterdir() if entry.is_dir() and _DOMAIN_NAME.match(entry.name))
+        except OSError:
+            names = []
+        for name in names[:30]:
+            if name.lower() in own:
+                continue
+            for ip in resolve_ipv4(name, resolver):
+                if _is_public_ipv4(ip):
+                    votes[ip] = votes.get(ip, 0) + 1
+    ordered = sorted(votes, key=lambda ip: (-votes[ip], ip))
+    for name in (socket.getfqdn(), socket.gethostname()):
+        for ip in resolve_ipv4(name, resolver):
+            if _is_public_ipv4(ip) and ip not in ordered:
+                ordered.append(ip)
+    try:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            probe.connect(("192.0.2.1", 9))  # no packet is sent for UDP connect
+            own_ip = probe.getsockname()[0]
+        finally:
+            probe.close()
+        if _is_public_ipv4(own_ip) and own_ip not in ordered:
+            ordered.append(own_ip)
+    except OSError:
+        pass
+    return ordered
+
+
+def serves_site(ip: str, site_url: str, timeout: float = 8.0) -> bool:
+    """Whether the web server at ``ip`` answers for the site's domain.
+
+    Plain HTTP on port 80 with the site's Host header, so no certificate is
+    involved (a fresh copy often has none for its domain yet). A WordPress
+    answer, or a redirect to the site's own address, counts.
+    """
+    names = hosts_names(site_url)
+    host = urllib.parse.urlsplit(site_url).hostname or (names[0] if names else "")
+    path = (urllib.parse.urlsplit(site_url).path.rstrip("/") or "") + "/"
+    connection = http.client.HTTPConnection(ip, 80, timeout=timeout)
+    try:
+        connection.request("GET", path, headers={"Host": host, "User-Agent": "wpmigrate"})
+        response = connection.getresponse()
+        body = response.read(200_000).decode("utf-8", "replace")
+        location = response.getheader("Location") or ""
+    except (OSError, http.client.HTTPException):
+        return False
+    finally:
+        connection.close()
+    if 300 <= response.status < 400:
+        target = (urllib.parse.urlsplit(location).hostname or "").lower()
+        return target in names
+    return response.status == 200 and ("wp-content" in body or "wp-includes" in body)

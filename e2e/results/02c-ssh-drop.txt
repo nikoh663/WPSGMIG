@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.3                                │
+  │  wpmigrate 1.3.5                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -65,13 +65,13 @@
   › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ⠦ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  48%  79 MB of 163 MB  · 19 MB/s
+  ⠧ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  42%  69 MB of 163 MB  · 16 MB/s
 
-[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 48%
+[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42%
 
 [drive] sending SIGHUP to the tool (simulating the SSH connection dropping (terminal closed))
 
 [drive] exit code: 1
 --- the tool's log after the hangup:
-2026-11-15 21:41:34 [download] info: All files are copied over.
-2026-11-15 21:41:40 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt
+2026-11-23 15:41:16 [download] info: All files are copied over.
+2026-11-23 15:41:22 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt

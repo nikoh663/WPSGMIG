@@ -114,6 +114,9 @@ class ScriptedPrompter:
         self.answers: dict[str, object] = dict(answers or {})
         self.asked: list[str] = []
 
+    def has_answer(self, key: str) -> bool:
+        return key in self.answers
+
     def _get(self, key: str) -> object:
         self.asked.append(key)
         if key in self.answers:

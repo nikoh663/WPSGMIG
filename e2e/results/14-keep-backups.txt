@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.3                                │
+  │  wpmigrate 1.3.5                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -71,7 +71,7 @@
   ✓ Okay, I will copy old-site-backup.zip and leave out the other 10.5 MB.
     Nothing is deleted on your original site.
   ✓ Copying files  187 MB · 3,840 files · 13s
-  ✓ The database is copied over (212.9 MB).
+  ✓ The database is copied over (212.8 MB).
 
  ◆ Setting up its new home
 
@@ -82,10 +82,6 @@
 
   Next, the database for the copy. If you do not have one yet, create an empty
   database and a user for it in your hosting panel first.
-
-  ? Database host
-    Press Enter for localhost
-  › 172.30.0.12
 
   ? Database name
   › site_new
@@ -103,7 +99,7 @@
   › [y/N] y
 
  ◆ Putting everything in place
-  ✓ Importing the database  213 MB · 286 queries · 8s
+  ✓ Importing the database  213 MB · 286 queries · 9s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ WordPress starts up fine in its new home.
@@ -119,7 +115,7 @@
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (42s)
+  ✓ All done! Your site has been copied.  (43s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -132,9 +128,14 @@
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
-  • Where the time went: copying the files 15s, importing the database 9s,
+  • Where the time went: copying the files 15s, importing the database 10s,
     copying the database 6s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
+
+  I could not work out this server's IP address. Find it in your hosting panel
+  and put it at the start of this line:
+
+      <this server's IP> dest.test www.dest.test
 
 [drive] exit code: 0
 OK   https://dest.test/ -> HTTP 200, contains 'SRC-A-7731'

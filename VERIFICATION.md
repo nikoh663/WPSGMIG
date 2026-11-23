@@ -1,6 +1,6 @@
 # Verification
 
-Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.3.4. The
+Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.3.6. The
 tool ran as an unprivileged user (`wpuser`) inside a pseudo-terminal, typing
 answers the way a person would. The full output of each run is in
 `e2e/results/`, followed by independent checks made with curl, WP-CLI and SQL.
@@ -33,6 +33,7 @@ answers the way a person would. The full output of each run is in
 | 15 | Site copied into a subfolder of its own address (`https://src-a.test` to `https://src-a.test/new`) | `17-same-domain-subfolder.txt` | Pass. Links in post content, the menu, post meta and serialized options all point to `https://src-a.test/new/...`, with no `/new/new` and no temporary address left anywhere, including the guid and a table without a primary key (plain and serialized values). The address step took about 3 seconds with WP-CLI. Added after a real run gave `/new/new/` links. The test web server does not answer for src-a.test, so the online check reports 404 there. |
 | 16 | Existing site, "keep", other files moved along with the old site | `18-keep-move-other-files.txt` | Pass. Choosing "Move them to the old site's folder" puts google1234.html in `old.dest.test/public_html` and not in the backup folder. Both sites load. |
 | 17 | `--install-plugins` with two plugin zips and one directory slug | run by hand with the non-interactive command from the README | Pass. After the copy answered, both zip plugins were installed and active (their activation hooks ran), and the copy still answered 200. The slug could not be downloaded because wordpress.org is blocked on the test machine: the tool warned, named it, printed the command to retry, and finished normally. |
+| 18 | Wrong database password, then the right one | `19-wrong-db-password.txt` | Pass. The host is not asked for. After the wrong password the tool says it was not accepted and offers: type them again, change the host, or stop. Enter kept the name and user, the right password connected, and the site loads. The summary ends with the hosts-file line `172.30.0.20 dest.test www.dest.test` (given with `--server-ip`, and confirmed by asking that web server for the site). |
 
 Extra runs for the layout decision: `10-layout-link.txt` (symlinks: 403,
 removed from the tool) and `11-layout-copy.txt` (copy: works, no symlinks).
@@ -67,4 +68,5 @@ WordPress block to match the new address's path, and a unit test covers it.
   names the backup plugins it can see. Plugins whose backup folder holds only
   the archives themselves (no `index.php` next to them) are not named.
 - Speed on real hosting. On the test machine a 386 MB site (197 MB of files, 189 MB of database) copies in about 36 seconds, so the tool itself adds little; on real hosting the time depends on how fast the old site can send its files and how fast the new database imports. The summary now shows how long each step took.
+- Finding the server's IP address by itself. On the test machine every domain resolves to a private address, which the tool ignores, so only the unit tests (with sample DNS answers) cover the automatic choice. On real hosting it uses the IP that the account's other domains resolve to.
 - Very large sites. The test site is about 390 MB: 197 MB in 3,843 files and a 189 MB database.

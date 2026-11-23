@@ -3,7 +3,7 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
 
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.3                                │
+  │  wpmigrate 1.3.5                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -48,11 +48,11 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
   Copying the files...
-    1.4% Copying files: 124 of 3,839 files, 2.3 of 163.0 MB
+    1.2% Copying files: 101 of 3,839 files, 1.9 of 163.0 MB
   100.0% Copying files: 3,839 of 3,839 files, 163.0 of 163.0 MB
   ✓ All files are copied over.
   Copying the database...
-  ✓ The database is copied over (212.9 MB).
+  ✓ The database is copied over (212.8 MB).
 
  ◆ Setting up its new home
 
@@ -62,7 +62,8 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
 
  ◆ Putting everything in place
   Importing the database and changing the address to https://src-a.test/new...
-  100.0% Importing the database: 286 database statements, 212.9 of 212.9 MB
+   87.8% Importing the database: 217 database statements, 187.0 of 212.8 MB
+  100.0% Importing the database: 286 database statements, 212.8 of 212.8 MB
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html/new.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ Adjusted .htaccess so links work under /new.
@@ -79,8 +80,9 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   ✓ Removed the helper plugin from your original site.
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
+  Finding this server's IP address...
 
-  ✓ All done! Your site has been copied.  (1m 26s)
+  ✓ All done! Your site has been copied.  (1m 43s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html/new and uses the
     address https://src-a.test/new.
@@ -94,9 +96,14 @@ $ python3 wpmigrate.pyz --non-interactive --source https://src-a.test --user adm
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
-  • Where the time went: changing the address 52s, copying the files 11s,
-    importing the database 9s, copying the database 6s.
+  • Where the time went: changing the address 1m 4s, copying the files 14s,
+    importing the database 10s, copying the database 7s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
+
+  I could not work out this server's IP address. Find it in your hosting panel
+  and put it at the start of this line:
+
+      <this server's IP> src-a.test www.src-a.test
 [exit code: 0]
 --- checks (WP-CLI on the copy)
 home: https://src-a.test/new
@@ -108,9 +115,9 @@ guid of the Reviews page: https://src-a.test/new/reviews/
 values anywhere with the temporary address: 0
 rows with the temporary address: 0
 --- timing from the log
-2026-11-15 22:05:04 [deploy] info: Changing the address to https://src-a.test/new...
-2026-11-15 22:05:51 search-replace https://wpmigrate-new-address.invalid -> https://src-a.test/new: Success: Made 120019 replacements.
-2026-11-15 22:05:53 search-replace https:\/\/wpmigrate-new-address.invalid -> https:\/\/src-a.test\/new: Success: Made 0 replacements.
-2026-11-15 22:05:55 search-replace wpmigrate-new-address.invalid -> src-a.test/new: Success: Made 1 replacement.
-2026-11-15 22:05:55 tables without a primary key: changed 2
-2026-11-15 22:05:55 [deploy] info: The address is now https://src-a.test/new everywhere in the database.
+2026-11-23 15:52:22 [deploy] info: Changing the address to https://src-a.test/new...
+2026-11-23 15:53:22 search-replace https://wpmigrate-new-address.invalid -> https://src-a.test/new: Success: Made 120019 replacements.
+2026-11-23 15:53:23 search-replace https:\/\/wpmigrate-new-address.invalid -> https:\/\/src-a.test\/new: Success: Made 0 replacements.
+2026-11-23 15:53:26 search-replace wpmigrate-new-address.invalid -> src-a.test/new: Success: Made 1 replacement.
+2026-11-23 15:53:26 tables without a primary key: changed 2
+2026-11-23 15:53:26 [deploy] info: The address is now https://src-a.test/new everywhere in the database.

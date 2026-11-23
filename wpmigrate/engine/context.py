@@ -47,6 +47,7 @@ class Options:
     keep_downloads: bool = False
     file_layout: str = "move"
     install_plugins: tuple[str, ...] = ()
+    server_ip: str | None = None
     sleep: Callable[[float], None] = time.sleep
 
 

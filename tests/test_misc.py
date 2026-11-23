@@ -288,3 +288,28 @@ class InstallPluginListTests(unittest.TestCase):
         for bad in ("--path=/", "Akismet", "http://example.com/p.zip", "../x.zip", "a;b"):
             with self.assertRaises(ValueError):
                 destination.parse_plugin_list(bad)
+
+
+class HostsLineTests(unittest.TestCase):
+    def test_names(self):
+        self.assertEqual(destination.hosts_line("35.213.238.76", "https://example.com.au/new"), "35.213.238.76 example.com.au www.example.com.au")
+        self.assertEqual(destination.hosts_names("https://www.Example.com"), ["example.com", "www.example.com"])
+        self.assertEqual(destination.hosts_names("https://10.0.0.1"), [])
+
+    def test_base_folder(self):
+        self.assertEqual(destination.sites_base_folder(Path("/home/u/www/example.com/public_html/new")), Path("/home/u/www"))
+        self.assertIsNone(destination.sites_base_folder(Path("/var/www/html")))
+
+    def test_candidates_vote_from_other_domains(self):
+        import socket
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp) / "www"
+            for name in ("example.com", "temp.host-example.net", "other.org", "old.example.com"):
+                (base / name / "public_html").mkdir(parents=True)
+            table = {"temp.host-example.net": ["35.213.238.76"], "other.org": ["35.213.238.76"], "old.example.com": ["35.213.238.76"], "example.com": ["93.184.216.34"]}
+
+            def resolver(name, port, family, kind):
+                return [(socket.AF_INET, kind, 6, "", (ip, 0)) for ip in table.get(name, [])]
+            candidates = destination.server_ip_candidates(base / "example.com" / "public_html", "https://example.com", resolver)
+            self.assertEqual(candidates[0], "35.213.238.76")
+            self.assertNotIn("93.184.216.34", candidates)
