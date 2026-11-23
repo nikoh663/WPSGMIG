@@ -46,6 +46,7 @@ class Options:
     start_dir: Path = field(default_factory=Path.cwd)
     keep_downloads: bool = False
     file_layout: str = "move"
+    install_plugins: tuple[str, ...] = ()
     sleep: Callable[[float], None] = time.sleep
 
 

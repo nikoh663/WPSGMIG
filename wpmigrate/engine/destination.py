@@ -317,3 +317,26 @@ def timing_summary(timings: dict[str, float]) -> str | None:
     if not steps:
         return None
     return "Where the time went: " + ", ".join(f"{label} {human_duration(spent)}" for spent, label in steps) + "."
+
+
+_PLUGIN_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,99}$")
+
+
+def parse_plugin_list(text: str) -> list[str]:
+    """Plugins to install after the copy, from a comma or space separated list.
+
+    Each one is a plugin's slug from the WordPress.org directory, a zip file on
+    this server, or an https:// address of a zip. Anything else is refused, so
+    nothing can be passed to WP-CLI as an option.
+    """
+    plugins: list[str] = []
+    for item in re.split(r"[,\s]+", text.strip()):
+        if not item:
+            continue
+        is_zip = item.lower().endswith(".zip") and (item.startswith("https://") or item.startswith("/") or item.startswith("~/"))
+        if not (_PLUGIN_SLUG.match(item) or is_zip):
+            raise ValueError(f"{item} is not a plugin slug (such as hello-dolly), a .zip path or an https:// address of a .zip")
+        item = os.path.expanduser(item) if item.startswith("~/") else item
+        if item not in plugins:
+            plugins.append(item)
+    return plugins

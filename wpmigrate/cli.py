@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from wpmigrate.engine import destination
 from wpmigrate import __version__, constants
 from wpmigrate.engine.context import Context, Options, Secrets
 from wpmigrate.engine.prompts import (
@@ -187,6 +188,7 @@ def build_parser() -> argparse.ArgumentParser:
     add("--replace-tables", action="store_true", default=None, help="confirm replacing tables in that database")
     add("--reuse-old-db", choices=("yes", "no"), help="use the removed site's database details")
     add("--other-files", choices=("backup", "with_old", "move", "remove", "leave"), help="what to do with non-WordPress files in the folder (with_old: move them along with a kept old site; move: to --other-files-folder)")
+    add("--install-plugins", metavar="LIST", help="plugins to install and activate once the copy works, comma separated (slugs, .zip files or https:// .zip addresses)")
     add("--other-files-folder", metavar="PATH", help="where --other-files move puts them")
     add("--skip-backups", choices=("yes", "no"), help="leave leftover backups out of the copy (yes, the default) or copy all of them (no)")
     add("--cleanup-source", choices=("yes", "no"), help="remove the plugin and this server's access from the source at the end (default: yes)")
@@ -207,7 +209,7 @@ _ENV_KEYS = {
     "existing_site": "WPMIGRATE_EXISTING_SITE", "confirm_domain": "WPMIGRATE_CONFIRM_DOMAIN", "old_site_folder": "WPMIGRATE_OLD_SITE_FOLDER",
     "db_host": "WPMIGRATE_DB_HOST", "db_name": "WPMIGRATE_DB_NAME", "db_user": "WPMIGRATE_DB_USER", "other_files": "WPMIGRATE_OTHER_FILES",
     "cleanup_source": "WPMIGRATE_CLEANUP_SOURCE", "php": "WPMIGRATE_PHP", "reprint_phar": "WPMIGRATE_REPRINT_PHAR",
-    "user_agent": "WPMIGRATE_USER_AGENT", "file_layout": "WPMIGRATE_FILE_LAYOUT", "reuse_old_db": "WPMIGRATE_REUSE_OLD_DB", "skip_backups": "WPMIGRATE_SKIP_BACKUPS", "resume": "WPMIGRATE_RESUME",
+    "user_agent": "WPMIGRATE_USER_AGENT", "file_layout": "WPMIGRATE_FILE_LAYOUT", "reuse_old_db": "WPMIGRATE_REUSE_OLD_DB", "skip_backups": "WPMIGRATE_SKIP_BACKUPS", "install_plugins": "WPMIGRATE_INSTALL_PLUGINS", "resume": "WPMIGRATE_RESUME",
 }
 _ENV_FLAGS = {"allow_http": "WPMIGRATE_ALLOW_HTTP", "keep_downloads": "WPMIGRATE_KEEP_DOWNLOADS", "manual": "WPMIGRATE_MANUAL",
               "non_interactive": "WPMIGRATE_NON_INTERACTIVE", "replace_tables": "WPMIGRATE_REPLACE_TABLES", "subdomain_ready": "WPMIGRATE_SUBDOMAIN_READY"}
@@ -270,6 +272,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     apply_environment(args, dict(os.environ))
+    try:
+        install_plugins = destination.parse_plugin_list(args.install_plugins or "")
+    except ValueError as error:
+        parser.error(f"--install-plugins: {error}")
     terminal = Terminal(sys.stdout)
     renderer = Renderer(terminal)
     interactive = not args.non_interactive and sys.stdin.isatty()
@@ -292,6 +298,7 @@ def main(argv: list[str] | None = None) -> int:
         start_dir=Path.cwd(),
         keep_downloads=bool(args.keep_downloads),
         file_layout=args.file_layout or "move",
+        install_plugins=tuple(install_plugins),
     )
     system = LocalSystem()
     ctx = Context(system=system, prompter=prompter, sink=renderer, options=options, secrets=secrets, redactor=redactor)

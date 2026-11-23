@@ -278,3 +278,13 @@ class TimingTests(unittest.TestCase):
         self.assertEqual(text, "Where the time went: copying the files 12m 3s, importing the database 2m 28s.")
         self.assertIsNone(destination.timing_summary({"changing the address": 3}))
         self.assertEqual(destination.human_duration(3900), "1h 5m")
+
+
+class InstallPluginListTests(unittest.TestCase):
+    def test_parse(self):
+        self.assertEqual(destination.parse_plugin_list("akismet, hello-dolly akismet"), ["akismet", "hello-dolly"])
+        self.assertEqual(destination.parse_plugin_list(""), [])
+        self.assertEqual(destination.parse_plugin_list("https://example.com/p.zip,/tmp/x.zip"), ["https://example.com/p.zip", "/tmp/x.zip"])
+        for bad in ("--path=/", "Akismet", "http://example.com/p.zip", "../x.zip", "a;b"):
+            with self.assertRaises(ValueError):
+                destination.parse_plugin_list(bad)

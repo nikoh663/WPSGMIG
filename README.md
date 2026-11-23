@@ -67,7 +67,10 @@ extensions (all common on hosting). It runs as your normal hosting user and does
    checks that WordPress starts.
 9. Removes this server's access and the plugin from the old site (the plugin
    only if this tool installed it).
-10. Prints a summary of what to check next, and where the time went.
+10. If you asked for it with `--install-plugins`, installs and activates
+    those plugins on the copy once it works, the same as
+    `wp plugin install <plugins> --activate`.
+11. Prints a summary of what to check next, and where the time went.
 
 If any step on the old site fails (steps 3 to 5), for example because the host
 does not allow installing plugins, or there is a CAPTCHA or two-factor login, the
@@ -87,6 +90,18 @@ Passwords are never options, so they never show up in the process list.
 Type them when asked, or set `WPMIGRATE_ADMIN_PASSWORD` and
 `WPMIGRATE_DB_PASSWORD`. The tool removes those from its environment as soon as
 it has read them.
+
+To install plugins on the copy once it works, list their slugs (or .zip
+files) after `--install-plugins`, separated by commas. Add it to the end of
+the run command:
+
+```
+python3 ~/wpmigrate.pyz --install-plugins akismet,wordfence
+```
+
+Set `WPMIGRATE_INSTALL_PLUGINS=akismet,wordfence` in your shell profile to have
+it on every run. If an install fails, the copy is kept and the tool prints the
+command to try again.
 
 Example of a run with no questions:
 

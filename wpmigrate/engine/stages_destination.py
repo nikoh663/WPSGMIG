@@ -733,6 +733,46 @@ def _fix_rewrite_rules(ctx: Context, folder: Path) -> None:
         ctx.info(f"Adjusted .htaccess so links work under {path}.")
 
 
+def _install_plugins(ctx: Context, folder: Path) -> None:
+    """Install and activate the plugins asked for with --install-plugins.
+
+    This runs once the copy starts up, the same as
+    ``wp plugin install <plugins> --activate``. A failure here does not undo
+    the copy, which already works: it is reported so it can be done by hand.
+    """
+    state = ctx.st
+    plugins = list(ctx.options.install_plugins)
+    if not plugins or state.get("plugins_installed") == plugins:
+        return
+    ctx.info(f"Installing {', '.join(plugins)}...")
+    with ctx.timed("installing plugins"):
+        try:
+            cli = wp_cli(ctx)
+        except DestinationFailed as error:
+            ctx.warn(f"Could not install {', '.join(plugins)}: {error}")
+            return
+        result = cli.run(folder, ["plugin", "install", *plugins, "--activate"], skip_plugins=False, timeout=1800)
+    output = (result.stdout + "\n" + result.stderr).strip()
+    ctx.log(f"wp plugin install: exit {result.returncode}: {output}")
+    active = []
+    for plugin in plugins:
+        slug = Path(plugin).stem.split(".")[0] if plugin.endswith(".zip") else plugin
+        check = cli.run(folder, ["plugin", "is-active", slug], skip_plugins=True)
+        if check.returncode == 0:
+            active.append(plugin)
+    missing = [plugin for plugin in plugins if plugin not in active]
+    state.update({"plugins_installed": plugins if not missing else None, "plugins_missing": missing})
+    if not missing:
+        ctx.info(f"Installed and activated {', '.join(plugins)}.")
+    else:
+        lines = [line for line in output.splitlines() if line.startswith(("Error", "Warning"))]
+        ctx.warn(
+            f"These plugins could not be installed or activated: {', '.join(missing)}"
+            + (f" ({lines[-1]})" if lines else "")
+            + f". The copy itself works. To try again, run in {folder}: wp plugin install {' '.join(missing)} --activate"
+        )
+
+
 def stage_deploy(ctx: Context) -> None:
     """Import the database, put the files in place, configure and check WordPress."""
     state = ctx.st
@@ -797,6 +837,7 @@ def stage_deploy(ctx: Context) -> None:
             ctx.warn(f"{new_url} answered with an error ({detail}). Open it in a browser; if it stays broken, check the site's PHP version and the error log in your hosting panel.")
         else:
             ctx.warn(f"{new_url} does not answer yet ({detail}). That is normal until its domain points to this hosting account.")
+    _install_plugins(ctx, folder)
     source_php = state.get("source_php_version")
     destination_php, how = _destination_php_version(ctx, folder)
     state.update({"destination_php_version": destination_php, "destination_php_source": how})
