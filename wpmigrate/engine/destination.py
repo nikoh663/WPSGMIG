@@ -404,6 +404,9 @@ def server_ip_candidates(folder: Path, site_url: str, resolver=socket.getaddrinf
     host name, and the address it uses to reach the internet.
     """
     own = set(hosts_names(site_url))
+    # Where the domain points right now is the old server until DNS is
+    # switched, so those addresses are never offered, whatever votes for them.
+    live = {ip for name in own for ip in resolve_ipv4(name, resolver)}
     votes: dict[str, int] = {}
     base = sites_base_folder(folder)
     if base is not None and base.is_dir():
@@ -417,10 +420,10 @@ def server_ip_candidates(folder: Path, site_url: str, resolver=socket.getaddrinf
             for ip in resolve_ipv4(name, resolver):
                 if _is_public_ipv4(ip):
                     votes[ip] = votes.get(ip, 0) + 1
-    ordered = sorted(votes, key=lambda ip: (-votes[ip], ip))
+    ordered = [ip for ip in sorted(votes, key=lambda ip: (-votes[ip], ip)) if ip not in live]
     for name in (socket.getfqdn(), socket.gethostname()):
         for ip in resolve_ipv4(name, resolver):
-            if _is_public_ipv4(ip) and ip not in ordered:
+            if _is_public_ipv4(ip) and ip not in ordered and ip not in live:
                 ordered.append(ip)
     try:
         probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -429,7 +432,7 @@ def server_ip_candidates(folder: Path, site_url: str, resolver=socket.getaddrinf
             own_ip = probe.getsockname()[0]
         finally:
             probe.close()
-        if _is_public_ipv4(own_ip) and own_ip not in ordered:
+        if _is_public_ipv4(own_ip) and own_ip not in ordered and own_ip not in live:
             ordered.append(own_ip)
     except OSError:
         pass

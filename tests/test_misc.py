@@ -313,3 +313,19 @@ class HostsLineTests(unittest.TestCase):
             candidates = destination.server_ip_candidates(base / "example.com" / "public_html", "https://example.com", resolver)
             self.assertEqual(candidates[0], "35.213.238.76")
             self.assertNotIn("93.184.216.34", candidates)
+
+
+class LiveDomainIpTests(unittest.TestCase):
+    def test_live_domain_ip_is_never_offered(self):
+        import socket
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp) / "www"
+            for name in ("example.com", "parked.example.org"):
+                (base / name / "public_html").mkdir(parents=True)
+            # The other domain also still points to the old host.
+            table = {"example.com": ["15.235.207.79"], "www.example.com": ["15.235.207.79"], "parked.example.org": ["15.235.207.79"]}
+
+            def resolver(name, port, family, kind):
+                return [(socket.AF_INET, kind, 6, "", (ip, 0)) for ip in table.get(name, [])]
+            candidates = destination.server_ip_candidates(base / "example.com" / "public_html", "https://example.com", resolver)
+            self.assertNotIn("15.235.207.79", candidates)
