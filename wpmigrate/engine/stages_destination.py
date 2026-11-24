@@ -485,6 +485,7 @@ def stage_destination(ctx: Context) -> None:
             raise
     choose_database(ctx)
     decide_other_files(ctx, folder)
+    choose_plugins(ctx)
 
 
 # -- stage 8 ---------------------------------------------------------------------------
@@ -767,44 +768,141 @@ def _fix_rewrite_rules(ctx: Context, folder: Path) -> None:
         ctx.info(f"Adjusted .htaccess so links work under {path}.")
 
 
-def _install_plugins(ctx: Context, folder: Path) -> None:
-    """Install and activate the plugins asked for with --install-plugins.
+def _settings_file(ctx: Context) -> Path:
+    return ctx.system.home() / ".wpmigrate" / "settings.json"
 
-    This runs once the copy starts up, the same as
-    ``wp plugin install <plugins> --activate``. A failure here does not undo
-    the copy, which already works: it is reported so it can be done by hand.
+
+def _saved_plugins(ctx: Context) -> list[str]:
+    try:
+        saved = json.loads(_settings_file(ctx).read_text(encoding="utf-8")).get("install_plugins") or []
+        return dest.parse_plugin_list(",".join(str(item) for item in saved))
+    except (OSError, ValueError, AttributeError):
+        return []
+
+
+def _save_plugins(ctx: Context, plugins: list[str]) -> None:
+    path = _settings_file(ctx)
+    try:
+        settings = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        if not isinstance(settings, dict):
+            settings = {}
+    except (OSError, ValueError):
+        settings = {}
+    settings["install_plugins"] = plugins
+    try:
+        LocalSystem.write_private_file(path, json.dumps(settings, indent=2))
+    except OSError as error:
+        ctx.log(f"could not save the plugin choice: {error}")
+
+
+def choose_plugins(ctx: Context) -> None:
+    """Ask which plugins to install on the copy once it works (asked once, remembered)."""
+    state = ctx.st
+    if state.get("plugins_wanted") is not None:
+        return
+    if ctx.options.install_plugins:
+        plugins = list(ctx.options.install_plugins)
+    else:
+        saved = _saved_plugins(ctx)
+        default = ",".join(saved) if saved else "none"
+        plugins = None
+        for _ in range(3):
+            answer = ctx.prompter.ask_text(TextQuestion(
+                "install_plugins",
+                "Which plugins should I install and activate on the copy once it works?",
+                default=default,
+                help="Their names from the WordPress plugin directory, separated by commas, for example akismet,wordfence. Type none for none.",
+            )).strip()
+            if answer.lower() in ("", "none", "no", "-"):
+                plugins = []
+                break
+            try:
+                plugins = dest.parse_plugin_list(answer)
+                break
+            except ValueError as error:
+                ctx.warn(f"{error}. Please try again.")
+        if plugins is None:
+            plugins = []
+        _save_plugins(ctx, plugins)
+    state.set("plugins_wanted", plugins)
+    if plugins:
+        ctx.info(f"Once the copy works I will install and activate {', '.join(_plugin_name(plugin) for plugin in plugins)}.")
+
+
+def _plugin_states(cli: WpCli, folder: Path) -> dict[str, str] | None:
+    result = cli.run(folder, ["plugin", "list", "--fields=name,status", "--format=json"], skip_plugins=True)
+    try:
+        return {str(item["name"]): str(item["status"]) for item in json.loads(result.stdout)}
+    except (ValueError, TypeError, KeyError):
+        return None
+
+
+def _plugin_name(plugin: str) -> str:
+    """The folder name WordPress will use: the slug, or a zip's name without version."""
+    if not plugin.endswith(".zip"):
+        return plugin
+    stem = Path(urllib.parse.urlsplit(plugin).path).stem
+    return re.split(r"[._]\d", stem, maxsplit=1)[0]
+
+
+def _install_plugins(ctx: Context, folder: Path) -> None:
+    """Install and activate the chosen plugins, like ``wp plugin install <plugins> --activate``.
+
+    Runs once the copy starts up. Each plugin's result is shown: newly
+    installed, already there (and now active), or failed. A failure does not
+    undo the copy, which already works: the command to retry is printed.
     """
     state = ctx.st
-    plugins = list(ctx.options.install_plugins)
-    if not plugins or state.get("plugins_installed") == plugins:
+    plugins = state.get("plugins_wanted")
+    if plugins is None:
+        plugins = list(ctx.options.install_plugins)
+    if not plugins or state.get("plugin_results"):
         return
-    ctx.info(f"Installing {', '.join(plugins)}...")
+    ctx.info(f"Installing {', '.join(_plugin_name(plugin) for plugin in plugins)}...")
     with ctx.timed("installing plugins"):
         try:
             cli = wp_cli(ctx)
         except DestinationFailed as error:
             ctx.warn(f"Could not install {', '.join(plugins)}: {error}")
+            state.update({"plugin_results": [{"plugin": p, "result": "failed", "detail": str(error)} for p in plugins]})
             return
+        before = _plugin_states(cli, folder) or {}
         result = cli.run(folder, ["plugin", "install", *plugins, "--activate"], skip_plugins=False, timeout=1800)
-    output = (result.stdout + "\n" + result.stderr).strip()
+        output = (result.stdout + "\n" + result.stderr).strip()
+        after = _plugin_states(cli, folder) or {}
+        # A plugin that was already there may be left inactive (for example a
+        # zip whose folder exists): activate those as well.
+        idle = [_plugin_name(plugin) for plugin in plugins if after.get(_plugin_name(plugin)) not in (None, "active", "must-use", "dropin")]
+        if idle:
+            activation = cli.run(folder, ["plugin", "activate", *idle], skip_plugins=False, timeout=600)
+            output += "\n" + (activation.stdout + "\n" + activation.stderr).strip()
+            after = _plugin_states(cli, folder) or after
     ctx.log(f"wp plugin install: exit {result.returncode}: {output}")
-    active = []
+    messages = [line.strip() for line in output.splitlines() if line.strip().startswith(("Error", "Warning"))]
+    results, reasons = [], []
     for plugin in plugins:
-        slug = Path(plugin).stem.split(".")[0] if plugin.endswith(".zip") else plugin
-        check = cli.run(folder, ["plugin", "is-active", slug], skip_plugins=True)
-        if check.returncode == 0:
-            active.append(plugin)
-    missing = [plugin for plugin in plugins if plugin not in active]
-    state.update({"plugins_installed": plugins if not missing else None, "plugins_missing": missing})
-    if not missing:
-        ctx.info(f"Installed and activated {', '.join(plugins)}.")
+        name = _plugin_name(plugin)
+        was, now = before.get(name), after.get(name)
+        if now == "active" and was == "active":
+            outcome = "was already installed and active"
+        elif now == "active" and was:
+            outcome = "was already installed; now active"
+        elif now == "active":
+            outcome = "installed and activated"
+        else:
+            # WP-CLI's last word on a plugin is the one that counts.
+            detail = next((line for line in reversed(messages) if name in line), messages[-1] if messages else "no details")
+            reasons.append(f"{name}: {re.sub(r'^(Warning|Error): ', '', detail)}")
+            outcome = "could not be installed" if not now else "is installed but not active"
+        results.append({"plugin": plugin, "name": name, "result": "ok" if now == "active" else "failed", "outcome": outcome})
+    state.update({"plugin_results": results})
+    width = max(len(item["name"]) for item in results)
+    ctx.note("Plugins on the copy:\n" + "\n".join(f"  {'✓' if item['result'] == 'ok' else '✗'} {item['name']:<{width}}  {item['outcome']}" for item in results))
+    failed = [item["plugin"] for item in results if item["result"] != "ok"]
+    if failed:
+        ctx.warn(f"Not every plugin is in place ({'; '.join(reasons)}). The copy itself works. To try again, run in {folder}: wp plugin install {' '.join(failed)} --activate")
     else:
-        lines = [line for line in output.splitlines() if line.startswith(("Error", "Warning"))]
-        ctx.warn(
-            f"These plugins could not be installed or activated: {', '.join(missing)}"
-            + (f" ({lines[-1]})" if lines else "")
-            + f". The copy itself works. To try again, run in {folder}: wp plugin install {' '.join(missing)} --activate"
-        )
+        ctx.info(f"All {len(results)} plugin(s) are installed and active.")
 
 
 def stage_deploy(ctx: Context) -> None:

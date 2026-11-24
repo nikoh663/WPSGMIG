@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.5                                │
+  │  wpmigrate 1.3.8                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -53,7 +53,7 @@ Please finish these steps on your original site yourself:
 
 Migration Token (copy all of it):
 
-MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAk7yr1rGOesEn/gio+P6KYlHI6hY3bqvG9z439n6Ep2camYe0tXDAdUZtkhskVs49U2127pmdd8yRoHq3oFXCRJ4l/0skWjxizwhTA4uJNb0k784uZ3RHaeYwcX/BSvE+q+aGjVzDMKczeM9PzBA8BLi0cmOcMcGKtHkuj11zdnjfYroAip/Xbh1+A/s0ji/rKMuj08UEg3EC/RmmeYe985kHwcoIyV1D9SIIXtOCFFUFIegr9rghskUV5/H5lS2Lpk9RC9uZIsq1itGaP6RMZk4VX2KUp/rD9TPQ93KucJbxQEPj45sy4xmQ2XU96CsCDoDtShWjAOHB1iyZcH7YezrOzxJedKFNnjmQrx3ld5wxHuuZ9witMSVR9tXx29w295YE+hc86PFdtWCQp0HJ9pNVhXwGrS2OAkd8CxT5P/MyxU/70eOg+l44gkyBcUpn6wHzzcwBLelGWtQzvZeFJJl2NHI8snhmwI7RCf1stA51oMlvMuwbMWbudV9WekQ/AgMBAAE=
+MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAqsbevoLQ1lk40GmbBDT5Qss8RmehfiQ3EWhyNfy+bqrm2IMoeVDqL8pl163zKm1GycoT+uhNrxhj/tSLj8s8ipfeuGaqcDcRhK7OVz+ZzTmUWvU/Mebx5JJPJNVSH+sM+bIRE7KaTcpIuUucJvYHBSympy3PV7/d3cIdTQQinr2LZPTSxPdxZdO7osQzFxwTXdUDd4lpK2NAAH+g4CA9VPtxb5DE3cSNvSC79qVFWBLQSnt6+maldKudahi8vjCabVXoK0S2odBTMNAdGOUiiQBuTsi71exEiwkeAG8+4SZkSsru99hzm0z+kcZUywbbfL9TY3Pyn9RkoaGnKIawQQ6X48QSGbNhCMAkV+OgxKYw+/XWJGZKJl9nyq7f3VMEebOkPqvffnaSq+SDzQiD7L7L1O/vIcvv3ehQhwH3KL1aPDpsp5SzOFQojMWrm/82TzjqF8twQ5spwgipRr08ZC9Gi+9fO55Uadx7uNRMgKhOI2wIDGDDb7NykOB2A72vAgMBAAE=
 ──────────────────────────────────────────────────────────────────────────────
 
   ? Press Enter when the page says "Client authorized". If it asked for a
@@ -90,8 +90,8 @@ saved
   Backup archives made by plugins such as All-in-One WP Migration, UpdraftPlus
   and Duplicator are never part of the copy, and neither are cache and log
   files.
-  ✓ Copying files  163 MB · 3,839 files · 14s
-  ✓ The database is copied over (157.8 KB).
+  ✓ Copying files  163 MB · 3,839 files · 24s
+  ✓ The database is copied over (158.1 KB).
 
  ◆ Setting up its new home
 
@@ -118,6 +118,12 @@ saved
     will be replaced.
   › [y/N] y
 
+  ? Which plugins should I install and activate on the copy once it works?
+    Their names from the WordPress plugin directory, separated by commas, for
+    example akismet,wordfence. Type none for none.
+    Press Enter for none
+  › none
+
  ◆ Putting everything in place
   ✓ Importing the database  0.2 MB · 41 queries · 0s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html.
@@ -134,7 +140,7 @@ saved
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (28s)
+  ✓ All done! Your site has been copied.  (40s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -145,11 +151,12 @@ saved
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
-  • Where the time went: copying the files 16s.
+  • No plugins were installed on the copy (none were chosen).
+  • Where the time went: copying the files 26s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-b.test.
 
-  I could not work out this server's IP address. Find it in your hosting panel
-  and put it at the start of this line:
+  I could not work out this server's IP address. Run dig +short $(hostname)
+  here, or look in your hosting panel, and put it at the start of this line:
 
       <this server's IP> dest.test www.dest.test
 

@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.5                                │
+  │  wpmigrate 1.3.8                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -36,7 +36,7 @@
 
  ◆ Copying your site
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
-  ✓ Your site is about 386.4 MB in total: 197.4 MB of files (3,843 files) and
+  ✓ Your site is about 386.4 MB in total: 197.4 MB of files (3,845 files) and
     189.1 MB of database (14 tables).
 
   Where the space goes:
@@ -65,13 +65,13 @@
   › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ⠧ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  42%  69 MB of 163 MB  · 16 MB/s
+  ⠹ Copying files  ━━━━━━━━━━━━━━━━━━━━━━━━━━━  51%  84 MB of 163 MB  · 19 MB/s
 
-[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42%
+[drive] on screen at this moment: Copying files ━━━━━━━━━━━━━━━━━━━━━━━━━━━ 51%
 
 [drive] sending SIGHUP to the tool (simulating the SSH connection dropping (terminal closed))
 
 [drive] exit code: 1
 --- the tool's log after the hangup:
-2026-11-23 15:41:16 [download] info: All files are copied over.
-2026-11-23 15:41:22 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt
+2026-11-24 19:10:42 [download] info: All files are copied over.
+2026-11-24 19:10:50 [destination] failed: The tool needs an answer to continue (Which folder should the copy go in?), but nobody can be asked right now (the terminal was closed, or the tool runs unatt

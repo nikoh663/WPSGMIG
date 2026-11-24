@@ -103,10 +103,15 @@ def stage_summary(ctx: Context) -> None:
         lines.append(f"Leftover backups were not copied ({state.get('excluded_count'):,} file(s), {human_size(state.get('excluded_bytes') or 0)}). They are still on your original site.")
     lines.append("Have a look around: the home page, a few posts and pages, images, the admin login, contact forms, and any shop checkout.")
     lines.append("Good to know: the copy is a real, working site. It can send e-mails (to customers too), take payments and run scheduled tasks. Switch off anything that must not happen twice.")
-    if state.get("plugins_installed"):
-        lines.append(f"Installed and activated these plugins: {', '.join(state.get('plugins_installed'))}.")
-    if state.get("plugins_missing"):
-        lines.append(f"Good to know: these plugins could not be installed: {', '.join(state.get('plugins_missing'))}. Run in {folder}: wp plugin install {' '.join(state.get('plugins_missing'))} --activate")
+    results = state.get("plugin_results") or []
+    good = [item for item in results if item.get("result") == "ok"]
+    bad = [item for item in results if item.get("result") != "ok"]
+    if good:
+        lines.append("Plugins: " + "; ".join(f"{item.get('name', item['plugin'])} {item.get('outcome')}" for item in good) + ".")
+    if bad:
+        lines.append(f"Good to know: these plugins are not in place: {', '.join(item['plugin'] for item in bad)}. Run in {folder}: wp plugin install {' '.join(item['plugin'] for item in bad)} --activate")
+    if not results and not state.get("plugins_wanted"):
+        lines.append("No plugins were installed on the copy (none were chosen).")
     disabled = state.get("disabled_plugins") or []
     if disabled:
         lines.append(f"{len(disabled)} plugin(s) were switched off because WordPress could not start with them; check them in Plugins.")

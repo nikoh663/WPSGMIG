@@ -1,6 +1,6 @@
 # Verification
 
-Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.3.6. The
+Each scenario was run end to end with `wpmigrate.pyz`. All scenarios were run again on version 1.3.9. The
 tool ran as an unprivileged user (`wpuser`) inside a pseudo-terminal, typing
 answers the way a person would. The full output of each run is in
 `e2e/results/`, followed by independent checks made with curl, WP-CLI and SQL.
@@ -34,6 +34,7 @@ answers the way a person would. The full output of each run is in
 | 16 | Existing site, "keep", other files moved along with the old site | `18-keep-move-other-files.txt` | Pass. Choosing "Move them to the old site's folder" puts google1234.html in `old.dest.test/public_html` and not in the backup folder. Both sites load. |
 | 17 | `--install-plugins` with two plugin zips and one directory slug | run by hand with the non-interactive command from the README | Pass. After the copy answered, both zip plugins were installed and active (their activation hooks ran), and the copy still answered 200. The slug could not be downloaded because wordpress.org is blocked on the test machine: the tool warned, named it, printed the command to retry, and finished normally. |
 | 18 | Wrong database password, then the right one | `19-wrong-db-password.txt` | Pass. The host is not asked for. After the wrong password the tool says it was not accepted and offers: type them again, change the host, or stop. Enter kept the name and user, the right password connected, and the site loads. The summary ends with the hosts-file line `172.30.0.20 dest.test www.dest.test` (given with `--server-ip`, and confirmed by asking that web server for the site). |
+| 19 | Plugins asked for during setup: one already active on the old site, one there but inactive, one new, one that does not exist | `20-plugins.txt` | Pass. The tool lists each plugin with its result: "was already installed and active", "was already installed; now active", "installed and activated", and "could not be installed" with WP-CLI's reason and the retry command. All three real plugins are active on the copy afterwards. Added after a real run showed nothing about plugins. |
 
 Extra runs for the layout decision: `10-layout-link.txt` (symlinks: 403,
 removed from the tool) and `11-layout-copy.txt` (copy: works, no symlinks).

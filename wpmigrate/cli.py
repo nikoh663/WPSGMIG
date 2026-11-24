@@ -250,6 +250,8 @@ def presets_from(args: argparse.Namespace) -> dict[str, Any]:
         presets["cleanup_source"] = args.cleanup_source == "yes"
     if args.skip_backups:
         presets["copy_extra_files"] = "none" if args.skip_backups == "yes" else "all"
+    if args.install_plugins:
+        presets["install_plugins"] = args.install_plugins
     if args.resume:
         presets["resume"] = args.resume == "yes"
     if args.non_interactive:

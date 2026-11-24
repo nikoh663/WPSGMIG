@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.5                                │
+  │  wpmigrate 1.3.8                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -36,7 +36,7 @@
 
  ◆ Copying your site
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
-  ✓ Your site is about 386.4 MB in total: 197.4 MB of files (3,843 files) and
+  ✓ Your site is about 386.4 MB in total: 197.4 MB of files (3,845 files) and
     189.1 MB of database (14 tables).
 
   Where the space goes:
@@ -70,7 +70,7 @@
   › 1
   ✓ Okay, I will copy old-site-backup.zip and leave out the other 10.5 MB.
     Nothing is deleted on your original site.
-  ✓ Copying files  187 MB · 3,840 files · 13s
+  ✓ Copying files  187 MB · 3,842 files · 14s
   ✓ The database is copied over (212.8 MB).
 
  ◆ Setting up its new home
@@ -98,8 +98,14 @@
     will be replaced.
   › [y/N] y
 
+  ? Which plugins should I install and activate on the copy once it works?
+    Their names from the WordPress plugin directory, separated by commas, for
+    example akismet,wordfence. Type none for none.
+    Press Enter for none
+  › none
+
  ◆ Putting everything in place
-  ✓ Importing the database  213 MB · 286 queries · 9s
+  ✓ Importing the database  213 MB · 286 queries · 12s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ WordPress starts up fine in its new home.
@@ -115,7 +121,7 @@
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (43s)
+  ✓ All done! Your site has been copied.  (48s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -128,12 +134,13 @@
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
-  • Where the time went: copying the files 15s, importing the database 10s,
-    copying the database 6s.
+  • No plugins were installed on the copy (none were chosen).
+  • Where the time went: copying the files 16s, importing the database 12s,
+    copying the database 8s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
 
-  I could not work out this server's IP address. Find it in your hosting panel
-  and put it at the start of this line:
+  I could not work out this server's IP address. Run dig +short $(hostname)
+  here, or look in your hosting panel, and put it at the start of this line:
 
       <this server's IP> dest.test www.dest.test
 

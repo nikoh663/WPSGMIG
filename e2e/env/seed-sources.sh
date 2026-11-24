@@ -35,6 +35,9 @@ docker exec wpm-src-a sh -c 'cd /var/www/html && wp --allow-root post list --pos
   wp --allow-root option add test_serialized --format=json "{\"u\":\"https://src-a.test/reviews/\"}"; }'
 # A table without a primary key, as some plugins create.
 docker exec wpm-src-a sh -c 'cd /var/www/html && wp --allow-root eval "global \$wpdb; \$wpdb->query(\"CREATE TABLE IF NOT EXISTS wp_nopk_log (a int, b text)\"); if (!\$wpdb->get_var(\"SELECT COUNT(*) FROM wp_nopk_log\")) { \$wpdb->query(\$wpdb->prepare(\"INSERT INTO wp_nopk_log VALUES (1, %s), (2, %s)\", \"see https://src-a.test/reviews/\", serialize(array(\"u\" => \"https://src-a.test/reviews/\")))); }"'
+# Two of the test plugins are already on source A: one active, one inactive.
+for z in wpm-test-cache wpm-test-security; do docker cp "$(dirname "$0")/plugins/$z.zip" wpm-src-a:/tmp/$z.zip; done
+docker exec wpm-src-a sh -c 'cd /var/www/html && wp --allow-root plugin is-installed wpm-test-cache || { wp --allow-root plugin install /tmp/wpm-test-cache.zip --activate && wp --allow-root plugin install /tmp/wpm-test-security.zip; }'
 echo seeded
 # Leftover backups on source A, for the size report and the "leave them out" question.
 # The first group is skipped by the transfer engine itself; the second group is

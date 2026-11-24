@@ -36,7 +36,7 @@
 
  ◆ Copying your site
   ✓ Found WordPress 7.1.4 running on PHP 8.2.35.
-  ✓ Your site is about 386.4 MB in total: 197.4 MB of files (3,843 files) and
+  ✓ Your site is about 386.4 MB in total: 197.4 MB of files (3,845 files) and
     189.1 MB of database (14 tables).
 
   Where the space goes:
@@ -65,7 +65,7 @@
   › Type a number [1]: 
   ✓ Leaving out 34.3 MB of leftover backups. Nothing is deleted on your
     original site.
-  ✓ Copying files  163 MB · 3,839 files · 25s
+  ✓ Copying files  163 MB · 3,841 files · 12s
   ✓ The database is copied over (212.8 MB).
 
  ◆ Setting up its new home
@@ -93,8 +93,14 @@
     will be replaced.
   › [y/N] y
 
+  ? Which plugins should I install and activate on the copy once it works?
+    Their names from the WordPress plugin directory, separated by commas, for
+    example akismet,wordfence. Type none for none.
+    Press Enter for none
+  › none
+
  ◆ Putting everything in place
-  ✓ Importing the database  213 MB · 286 queries · 12s
+  ✓ Importing the database  213 MB · 286 queries · 11s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ WordPress starts up fine in its new home.
@@ -110,7 +116,7 @@
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (1m 01s)
+  ✓ All done! Your site has been copied.  (44s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -123,12 +129,13 @@
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
-  • Where the time went: copying the files 27s, importing the database 12s,
-    copying the database 8s.
+  • No plugins were installed on the copy (none were chosen).
+  • Where the time went: copying the files 14s, importing the database 12s,
+    copying the database 7s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
 
-  I could not work out this server's IP address. Find it in your hosting panel
-  and put it at the start of this line:
+  I could not work out this server's IP address. Run dig +short $(hostname)
+  here, or look in your hosting panel, and put it at the start of this line:
 
       <this server's IP> dest.test www.dest.test
 
@@ -137,3 +144,11 @@ OK   https://dest.test/ -> HTTP 200, contains 'SRC-A-7731'
 OK   https://dest.test/sample-page/ -> HTTP 200, contains 'Sample Page'
 site_new	14
 site_new home:	https://dest.test
+css: body{background:url("https://dest.test/wp-content/themes/marker-theme/bg.png")}
+--- leftover backups in the copy:
+ls: cannot access 'old-site-backup.zip': No such file or directory
+ls: cannot access 'db-dump.sql': No such file or directory
+ls: cannot access 'wp-content/backups': No such file or directory
+ls: cannot access 'wp-content/ai1wm-backups': No such file or directory
+--- secret check
+neither password appears in the private directory or the site folder (other than wp-config.php)

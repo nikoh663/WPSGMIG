@@ -69,9 +69,12 @@ extensions (all common on hosting). It runs as your normal hosting user and does
    checks that WordPress starts.
 9. Removes this server's access and the plugin from the old site (the plugin
    only if this tool installed it).
-10. If you asked for it with `--install-plugins`, installs and activates
-    those plugins on the copy once it works, the same as
-    `wp plugin install <plugins> --activate`.
+10. Installs and activates the plugins you chose on the copy once it works,
+    the same as `wp plugin install <plugins> --activate`. It asks which ones
+    during setup (it remembers your last answer; `none` for none), or takes
+    them from `--install-plugins`. Each plugin's result is shown: installed
+    and activated, already there (and now active), or not installed, with
+    the command to retry.
 11. Prints a summary of what to check next, and where the time went. It ends
     with a hosts-file line in yellow, such as
     `203.0.113.10 example.com www.example.com`, so you can see the copy on
@@ -99,9 +102,9 @@ Type them when asked, or set `WPMIGRATE_ADMIN_PASSWORD` and
 `WPMIGRATE_DB_PASSWORD`. The tool removes those from its environment as soon as
 it has read them.
 
-To install plugins on the copy once it works, list their slugs (or .zip
-files) after `--install-plugins`, separated by commas. Add it to the end of
-the run command:
+The tool asks which plugins to install on the copy. To answer in advance,
+list their slugs (or .zip files) after `--install-plugins`, separated by
+commas. Add it to the end of the run command:
 
 ```
 python3 ~/wpmigrate.pyz --install-plugins akismet,wordfence

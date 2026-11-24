@@ -1,6 +1,6 @@
 
   ╭─────────────────────────────────────────────────╮
-  │  wpmigrate 1.3.5                                │
+  │  wpmigrate 1.3.8                                │
   │  Let's move your WordPress site to this server  │
   ╰─────────────────────────────────────────────────╯
   Just answer a few questions and I'll do the rest. You can stop any time with
@@ -33,8 +33,14 @@
     will be replaced.
   › [y/N] y
 
+  ? Which plugins should I install and activate on the copy once it works?
+    Their names from the WordPress plugin directory, separated by commas, for
+    example akismet,wordfence. Type none for none.
+    Press Enter for none
+  › none
+
  ◆ Putting everything in place
-  ✓ Importing the database  213 MB · 286 queries · 9s
+  ✓ Importing the database  213 MB · 286 queries · 11s
   ✓ The files are in place in /home/wpuser/www/dest.test/public_html.
   ✓ Connected the copy to its database (wp-config.php).
   ✓ WordPress starts up fine in its new home.
@@ -50,7 +56,7 @@
   ✓ Cleaned up the temporary download and sign-in files.
   ✓ Removed the working files.
 
-  ✓ All done! Your site has been copied.  (15s)
+  ✓ All done! Your site has been copied.  (17s)
 
   • Your copy lives in /home/wpuser/www/dest.test/public_html and uses the
     address https://dest.test.
@@ -63,12 +69,13 @@
   • Good to know: the copy is a real, working site. It can send e-mails (to
     customers too), take payments and run scheduled tasks. Switch off anything
     that must not happen twice.
-  • Where the time went: copying the files 13s, importing the database 10s,
-    copying the database 6s.
+  • No plugins were installed on the copy (none were chosen).
+  • Where the time went: copying the files 13s, importing the database 12s,
+    copying the database 7s.
   • The log of this copy is kept in /home/wpuser/.wpmigrate/sites/src-a.test.
 
-  I could not work out this server's IP address. Find it in your hosting panel
-  and put it at the start of this line:
+  I could not work out this server's IP address. Run dig +short $(hostname)
+  here, or look in your hosting panel, and put it at the start of this line:
 
       <this server's IP> dest.test www.dest.test
 

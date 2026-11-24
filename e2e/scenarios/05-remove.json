@@ -76,6 +76,10 @@
    "send": "3\n"
   },
   {
+   "expect": "Which plugins should I install",
+   "send": "none\n"
+  },
+  {
    "expect": "tidy up your original site",
    "send": "y\n"
   }
